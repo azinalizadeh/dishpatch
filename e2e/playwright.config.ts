@@ -1,4 +1,9 @@
+import { randomInt } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
+
+// Every worker looks like its own client to the per-IP rate limits (5 boards/hour). The API only
+// reads X-Forwarded-For when TRUST_PROXY=true, which docker-compose.ci.yml sets for E2E runs.
+const clientIp = `10.${randomInt(256)}.${randomInt(256)}.${randomInt(1, 255)}`;
 
 /** Runs against the full stack from `docker compose up -d --build --wait` (06-test-plan.md › E2E suite). */
 export default defineConfig({
@@ -13,6 +18,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
     trace: 'retain-on-failure',
+    extraHTTPHeaders: { 'X-Forwarded-For': clientIp },
   },
   projects: [
     {

@@ -5,3 +5,6 @@ services:
   api:
     environment:
       LOG_LEVEL: warn
+      # Lets each Playwright worker present its own client IP (e2e/playwright.config.ts) so the
+      # per-IP create limit doesn't throttle the suite. CI/E2E only; never behind a real proxy.
+      TRUST_PROXY: "true"
