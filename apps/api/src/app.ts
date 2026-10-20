@@ -7,7 +7,7 @@ import type { Clock } from './clock.ts';
 import type { Db } from './db/client.ts';
 import type { Env } from './env.ts';
 import { createHttpLogger, createLogger } from './logger.ts';
-import { apiNotFound, errorHandler } from './middleware/errors.ts';
+import { errorHandler, notFoundHandler } from './middleware/errors.ts';
 import { noStore, requireJsonBody, securityHeaders } from './middleware/security.ts';
 import type { EventBus } from './realtime/event-bus.ts';
 import { healthRouter } from './routes/health.ts';
@@ -42,17 +42,20 @@ export function buildApp(deps: AppDeps): Express {
   api.use(cookieParser());
   api.use(healthRouter(db));
   if (env.NODE_ENV === 'test') api.use(testOnlyRouter());
-  api.use(apiNotFound);
+  api.use(notFoundHandler);
   app.use('/api', api);
 
   const staticDir = deps.staticDir;
   if (staticDir && existsSync(join(staticDir, 'index.html'))) {
     app.use(express.static(staticDir, { index: false }));
-    app.get('/{*splat}', (_req, res) => {
+    app.get('/{*splat}', (req, res, next) => {
+      // A missing hashed asset is a real 404, not the SPA.
+      if (req.path.startsWith('/assets/')) return next();
       res.sendFile(join(staticDir, 'index.html'));
     });
   }
 
+  app.use(notFoundHandler);
   app.use(errorHandler);
   return app;
 }

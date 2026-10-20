@@ -1,6 +1,6 @@
 import type { ApiError } from '@dishpatch/shared';
 import type { ErrorRequestHandler, RequestHandler } from 'express';
-import { DomainError } from '../domain/errors.ts';
+import { DomainError, notFound } from '../domain/errors.ts';
 
 function bodyParserErrorType(err: unknown): string | undefined {
   if (typeof err !== 'object' || err === null || !('type' in err)) return undefined;
@@ -19,8 +19,9 @@ function toDomainError(err: unknown): DomainError | null {
   return null;
 }
 
-export const apiNotFound: RequestHandler = (_req, _res, next) => {
-  next(new DomainError(404, 'NOT_FOUND', "We couldn't find that."));
+/** Any unmatched route (any method) gets the standard JSON 404 body. */
+export const notFoundHandler: RequestHandler = (_req, _res, next) => {
+  next(notFound());
 };
 
 /** Central error middleware; registered last. Unknown errors become 500 INTERNAL with no internals. */

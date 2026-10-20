@@ -31,4 +31,14 @@ describe('error handling', () => {
     expect(spa.headers['content-type']).toMatch(/text\/html/);
     expect(spa.text).toContain('<div id="root">');
   });
+
+  it('non-GET unknown routes and missing assets get the JSON 404 body', async () => {
+    for (const res of [
+      await request(app).post('/events/some-id').send({}),
+      await request(app).get('/assets/missing-abc123.js'),
+    ]) {
+      expect(res.status).toBe(404);
+      expect(res.body.error).toMatchObject({ code: 'NOT_FOUND' });
+    }
+  });
 });

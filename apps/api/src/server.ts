@@ -21,7 +21,11 @@ function readEnv(): Env {
 const env = readEnv();
 const logger = createLogger(env.LOG_LEVEL);
 const db = createDb(env.DATABASE_URL);
-const staticDir = fileURLToPath(new URL('../../web/dist', import.meta.url));
+// In development Vite serves the SPA; only production serves the built files.
+const staticDir =
+  env.NODE_ENV === 'production'
+    ? fileURLToPath(new URL('../../web/dist', import.meta.url))
+    : undefined;
 const bus = createInProcessEventBus();
 const app = buildApp({ env, db, clock: systemClock, bus, logger, staticDir });
 

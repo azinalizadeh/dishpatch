@@ -48,6 +48,9 @@ describe('security headers', () => {
       'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     });
     expect(res.headers['strict-transport-security']).toBeUndefined();
+    for (const extra of ['x-frame-options', 'x-xss-protection', 'origin-agent-cluster']) {
+      expect(res.headers[extra], extra).toBeUndefined();
+    }
   });
 
   it('adds HSTS in production only', async () => {

@@ -26,6 +26,13 @@ export function securityHeaders({ production }: { production: boolean }): Reques
       xContentTypeOptions: true,
       crossOriginOpenerPolicy: { policy: 'same-origin' },
       crossOriginResourcePolicy: { policy: 'same-origin' },
+      // Only the headers 07-security.md lists; frame-ancestors already replaces X-Frame-Options.
+      originAgentCluster: false,
+      xDnsPrefetchControl: false,
+      xDownloadOptions: false,
+      xFrameOptions: false,
+      xPermittedCrossDomainPolicies: false,
+      xXssProtection: false,
     }),
     (_req, res, next) => {
       res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
