@@ -3,16 +3,19 @@ packages:
   - packages/*
   - e2e
 
-# Temporary audit ignores need an issue link next to them (06-test-plan.md › deps-audit).
+# Install scripts are opt-in (pnpm 12). esbuild needs its postinstall; the
+# Testcontainers SSH/protobuf natives are optional and stay disabled.
 allowBuilds:
   cpu-features: false
   esbuild: true
   protobufjs: false
   ssh2: false
 
+# Temporary audit ignores need an issue link next to them (06-test-plan.md › deps-audit).
 auditConfig:
   ignoreGhsas: []
 
+# Pinned stack versions published inside pnpm's minimum-release-age window (added by pnpm install).
 minimumReleaseAgeExclude:
   - '@tanstack/query-core@5.104.5'
   - '@tanstack/react-query@5.104.5'
