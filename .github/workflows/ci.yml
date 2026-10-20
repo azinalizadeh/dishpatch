@@ -110,6 +110,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     permissions:
+      actions: read # private repos: CodeQL reads the workflow run
       contents: read
       security-events: write
     steps:
