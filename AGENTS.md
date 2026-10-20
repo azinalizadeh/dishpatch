@@ -74,3 +74,17 @@ Then, for every milestone in `08-agent-plan.md`:
 - **Merge to `main` only when every DoD box of the features covered by that milestone is ticked** (`git merge --no-ff m2-create-board`). Run `/code-review` against `main` before merging.
 - **Tag `v1-mvp`** on `main` when M7 is merged.
 - **Never force-push and never rewrite `main`** (no rebase/amend of pushed commits, no `reset --hard` on `main`).
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown: issues and specs live as files under `.scratch/<feature>/` (no remote tracker yet). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root, created lazily. See `docs/agents/domain.md`.
