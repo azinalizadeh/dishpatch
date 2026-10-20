@@ -23,7 +23,7 @@ RUN pnpm --filter @dishpatch/web build
 FROM base AS deps
 RUN pnpm install --frozen-lockfile --prod --filter @dishpatch/api...
 
-FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:c1326ce1aad4b976dce3a3da8b7eb5c8328e635e312309a7a0e5319d1470be0d AS runtime
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:55de7e48a8414e7aff825207c0b3c0f7db3b10133efc50d748560c27c9053be1 AS runtime
 ENV NODE_ENV=production PORT=3000
 WORKDIR /app
 COPY --from=deps /app/package.json ./
