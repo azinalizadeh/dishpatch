@@ -26,7 +26,7 @@ pnpm test                                # unit + component
 pnpm test:cov                            # with coverage thresholds
 pnpm test:int                            # API/integration (needs Docker)
 pnpm --filter @dishpatch/api test:race   # race tests
-docker compose up -d --build --wait && pnpm test:e2e
+docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait && pnpm test:e2e   # CI override: per-test client IPs for rate limits
 pnpm db:generate                         # after changing apps/api/src/db/schema.ts
 ```
 
