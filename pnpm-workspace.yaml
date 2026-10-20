@@ -1,0 +1,19 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+
+# Temporary audit ignores need an issue link next to them (06-test-plan.md › deps-audit).
+allowBuilds:
+  cpu-features: false
+  esbuild: true
+  protobufjs: false
+  ssh2: false
+
+auditConfig:
+  ignoreGhsas: []
+
+minimumReleaseAgeExclude:
+  - '@tanstack/query-core@5.104.5'
+  - '@tanstack/react-query@5.104.5'
+  - react-router@8.5.0
