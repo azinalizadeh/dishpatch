@@ -8,9 +8,13 @@ import type { Db } from './db/client.ts';
 import type { Env } from './env.ts';
 import { createHttpLogger, createLogger } from './logger.ts';
 import { errorHandler, notFoundHandler } from './middleware/errors.ts';
+import { originCheck } from './middleware/origin-check.ts';
+import { createRateLimits } from './middleware/rate-limits.ts';
 import { noStore, requireJsonBody, securityHeaders } from './middleware/security.ts';
 import type { EventBus } from './realtime/event-bus.ts';
+import { eventsRouter } from './routes/events.ts';
 import { healthRouter } from './routes/health.ts';
+import { hostLinksRouter } from './routes/host-links.ts';
 import { testOnlyRouter } from './routes/test-only.ts';
 
 export interface AppDeps {
@@ -25,7 +29,8 @@ export interface AppDeps {
 
 /** Builds the Express app without listening, so tests can drive it with supertest. */
 export function buildApp(deps: AppDeps): Express {
-  const { env, db } = deps;
+  const { env, db, clock } = deps;
+  const limits = createRateLimits();
   const logger = deps.logger ?? createLogger(env.LOG_LEVEL);
   const app = express();
 
@@ -39,8 +44,11 @@ export function buildApp(deps: AppDeps): Express {
   api.use(noStore);
   api.use(requireJsonBody);
   api.use(express.json({ limit: '16kb' }));
+  api.use(originCheck(env.APP_ORIGIN));
   api.use(cookieParser());
   api.use(healthRouter(db));
+  api.use(eventsRouter({ db, clock, env, limits }));
+  api.use(hostLinksRouter({ db, clock, env, limits }));
   if (env.NODE_ENV === 'test') api.use(testOnlyRouter());
   api.use(notFoundHandler);
   app.use('/api', api);

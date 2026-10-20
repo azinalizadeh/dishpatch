@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { buildApp } from './app.ts';
 import { systemClock } from './clock.ts';
 import { createDb } from './db/client.ts';
+import { runMigrations } from './db/migrate.ts';
 import { type Env, EnvError, loadEnv } from './env.ts';
 import { createLogger } from './logger.ts';
 import { createInProcessEventBus } from './realtime/event-bus.ts';
@@ -21,6 +22,8 @@ function readEnv(): Env {
 const env = readEnv();
 const logger = createLogger(env.LOG_LEVEL);
 const db = createDb(env.DATABASE_URL);
+// Single instance (04-architecture.md): apply committed migrations before taking traffic.
+await runMigrations(db);
 // In development Vite serves the SPA; only production serves the built files.
 const staticDir =
   env.NODE_ENV === 'production'
