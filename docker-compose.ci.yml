@@ -1,0 +1,7 @@
+# CI overrides: the database gets no host port, logs stay quiet.
+services:
+  db:
+    ports: !reset []
+  api:
+    environment:
+      LOG_LEVEL: warn

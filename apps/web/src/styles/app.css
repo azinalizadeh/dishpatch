@@ -1,0 +1,98 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Tailwind utilities read the design tokens; components never use raw hex values. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-ui: var(--border-ui);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-err-bg: var(--err-bg);
+  --color-err-ink: var(--err-ink);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-ink: var(--warn-ink);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-ink: var(--ok-ink);
+  --color-focus: var(--focus);
+  --color-cat-main: var(--cat-main);
+  --color-on-cat-main: var(--on-cat-main);
+  --color-cat-side: var(--cat-side);
+  --color-on-cat-side: var(--on-cat-side);
+  --color-cat-salad: var(--cat-salad);
+  --color-on-cat-salad: var(--on-cat-salad);
+  --color-cat-dessert: var(--cat-dessert);
+  --color-on-cat-dessert: var(--on-cat-dessert);
+  --color-cat-drinks: var(--cat-drinks);
+  --color-on-cat-drinks: var(--on-cat-drinks);
+
+  --font-heading: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-code: var(--font-mono);
+
+  --spacing-s1: var(--s1);
+  --spacing-s2: var(--s2);
+  --spacing-s3: var(--s3);
+  --spacing-s4: var(--s4);
+  --spacing-s5: var(--s5);
+  --spacing-s6: var(--s6);
+  --spacing-s7: var(--s7);
+  --spacing-s8: var(--s8);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-pill: var(--r-pill);
+
+  --shadow-e1: var(--e1);
+  --shadow-e2: var(--e2);
+  --shadow-e3: var(--e3);
+
+  --ease-dp: var(--ease);
+
+  /* 03-design.md › Breakpoints: mobile ≤ 720, tablet 721–1023, desktop ≥ 1024 */
+  --breakpoint-tablet: 721px;
+  --breakpoint-desktop: 1024px;
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px / 1.5 var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced motion must beat every component transition (03-design.md › Motion). */
+/* biome-ignore-start lint/complexity/noImportantStyles: global reduced-motion override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* biome-ignore-end lint/complexity/noImportantStyles: global reduced-motion override */
