@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dishpatch — clickable mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* ===== Design tokens (mirror 03-design.md) ===== */
+:root{
+  --bg:#F6F7F2; --surface:#FFFFFF; --surface-2:#EEF1EA; --ink:#1B2421; --muted:#56635E; --border:#D9DED6; --border-ui:#8A968F;
+  --primary:#1F6F5C; --on-primary:#FFFFFF; --primary-soft:#DDEFE8; --accent:#F2B33D; --on-accent:#1B2421;
+  --error:#B3261E; --on-error:#FFFFFF; --err-bg:#FBE3E0; --err-ink:#8C1D18;
+  --warn-bg:#FDF0D2; --warn-ink:#7A4B00; --ok-bg:#DDF3E6; --ok-ink:#14532D;
+  --cat-main:#1F6F5C; --on-cat-main:#FFFFFF; --cat-side:#F2B33D; --on-cat-side:#1B2421; --cat-salad:#4D7A12; --on-cat-salad:#FFFFFF;
+  --cat-dessert:#B4245D; --on-cat-dessert:#FFFFFF; --cat-drinks:#2160A8; --on-cat-drinks:#FFFFFF; --cat-other:#5B6470; --on-cat-other:#FFFFFF;
+  --focus:#2160A8;
+  --font-display:"Bricolage Grotesque", system-ui, sans-serif; --font-body:"Atkinson Hyperlegible Next", system-ui, sans-serif; --font-mono:"JetBrains Mono", ui-monospace, monospace;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-pill:999px;
+  --e1:0 1px 2px rgba(20,30,25,.08),0 1px 1px rgba(20,30,25,.04); --e2:0 4px 12px rgba(20,30,25,.10); --e3:0 12px 32px rgba(20,30,25,.18);
+  --dur-fast:120ms; --dur-base:200ms; --dur-slow:320ms; --ease:cubic-bezier(.2,.8,.2,1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18201D; --surface-2:#1F2925; --ink:#E8EEEA; --muted:#A3B1AB; --border:#2C3833; --border-ui:#5E6E67;
+  --primary:#5CC8A8; --on-primary:#0B1F19; --primary-soft:#173A30; --accent:#F2C35B; --on-accent:#1B2421;
+  --error:#FF8A7A; --on-error:#2A0906; --err-bg:#3A1512; --err-ink:#FFB4A9; --warn-bg:#2E2410; --warn-ink:#F7D27A; --ok-bg:#10281C; --ok-ink:#8EE0B5;
+  --cat-main:#5CC8A8; --on-cat-main:#0B1F19; --cat-side:#F2C35B; --on-cat-side:#1B2421; --cat-salad:#9CCB5A; --on-cat-salad:#0F1A05;
+  --cat-dessert:#F28DB5; --on-cat-dessert:#2A0716; --cat-drinks:#86B7F0; --on-cat-drinks:#06162B; --cat-other:#B6BEC8; --on-cat-other:#111418;
+  --focus:#86B7F0; --e1:0 1px 2px rgba(0,0,0,.4); --e2:0 4px 12px rgba(0,0,0,.45); --e3:0 12px 32px rgba(0,0,0,.6); color-scheme: dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18201D; --surface-2:#1F2925; --ink:#E8EEEA; --muted:#A3B1AB; --border:#2C3833; --border-ui:#5E6E67;
+  --primary:#5CC8A8; --on-primary:#0B1F19; --primary-soft:#173A30; --accent:#F2C35B; --on-accent:#1B2421;
+  --error:#FF8A7A; --on-error:#2A0906; --err-bg:#3A1512; --err-ink:#FFB4A9; --warn-bg:#2E2410; --warn-ink:#F7D27A; --ok-bg:#10281C; --ok-ink:#8EE0B5;
+  --cat-main:#5CC8A8; --on-cat-main:#0B1F19; --cat-side:#F2C35B; --on-cat-side:#1B2421; --cat-salad:#9CCB5A; --on-cat-salad:#0F1A05;
+  --cat-dessert:#F28DB5; --on-cat-dessert:#2A0716; --cat-drinks:#86B7F0; --on-cat-drinks:#06162B; --cat-other:#B6BEC8; --on-cat-other:#111418;
+  --focus:#86B7F0; --e1:0 1px 2px rgba(0,0,0,.4); --e2:0 4px 12px rgba(0,0,0,.45); --e3:0 12px 32px rgba(0,0,0,.6); color-scheme: dark;
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--bg); color:var(--ink); font:400 16px/1.5 var(--font-body); -webkit-font-smoothing:antialiased; min-height:100vh}
+h1,h2,h3{font-family:var(--font-display); font-weight:800; letter-spacing:-.01em; margin:0}
+h1{font-size:40px; line-height:1.1} h2{font-size:24px; line-height:1.2} h3{font-size:18px; line-height:1.3; font-weight:600}
+p{margin:0} .muted{color:var(--muted)} .small{font-size:14px} .xs{font-size:12px; letter-spacing:.02em}
+.mono{font-family:var(--font-mono); font-size:14px}
+:focus-visible{outline:3px solid var(--focus); outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+button{font:inherit}
+/* ===== Components ===== */
+a.btn{text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);min-height:48px;padding:0 var(--s5);border-radius:var(--r-md);border:1.5px solid transparent;font-weight:700;cursor:pointer;transition:transform var(--dur-fast) var(--ease),background var(--dur-base)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--primary);color:var(--on-primary)} .btn-primary:hover{filter:brightness(1.08)}
+.btn-secondary{background:transparent;color:var(--ink);border-color:var(--border-ui)} .btn-secondary:hover{background:var(--surface-2)}
+.btn-ghost{background:transparent;color:var(--primary);padding:0 var(--s3)}
+.btn-danger{background:var(--error);color:var(--on-error)}
+.btn[disabled],.btn[aria-busy="true"]{opacity:.6;cursor:not-allowed}
+.btn-sm{min-height:40px;padding:0 var(--s4);font-size:14px}
+.btn .spin{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.field{display:flex;flex-direction:column;gap:var(--s1)} .field label{font-weight:700;font-size:14px}
+.input{min-height:48px;border-radius:var(--r-md);border:1.5px solid var(--border-ui);background:var(--surface);color:var(--ink);padding:0 var(--s4);font:inherit}
+.input:focus{outline:3px solid var(--focus);outline-offset:1px}
+.input.is-error{border-color:var(--error)} .field .err{color:var(--error);font-size:14px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 var(--s4);border-radius:var(--r-pill);border:1.5px solid var(--border-ui);background:var(--surface);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--primary-soft);border-color:var(--primary);color:var(--ink)}
+.chip[aria-pressed="true"]::before{content:"✓";color:var(--primary);font-weight:800}
+.tag{display:inline-flex;align-items:center;min-height:24px;padding:0 var(--s2);border-radius:var(--r-pill);background:var(--surface-2);color:var(--muted);font-size:12px;font-weight:700}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--e1)}
+.stepper{display:inline-flex;align-items:center;border:1.5px solid var(--border-ui);border-radius:var(--r-md);overflow:hidden}
+.stepper button{width:44px;height:44px;border:0;background:var(--surface);color:var(--ink);font-size:20px;cursor:pointer}
+.stepper span{min-width:36px;text-align:center;font-weight:700}
+.banner{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3) var(--s4);border-radius:var(--r-md);font-size:14px;font-weight:600}
+.banner-warn{background:var(--warn-bg);color:var(--warn-ink)} .banner-err{background:var(--err-bg);color:var(--err-ink)} .banner-ok{background:var(--ok-bg);color:var(--ok-ink)}
+.banner .icon{font-size:18px;line-height:1.2}
+.toast{position:fixed;left:50%;bottom:var(--s6);transform:translateX(-50%);width:max-content;background:var(--ink);color:var(--bg);padding:var(--s3) var(--s5);border-radius:var(--r-md);box-shadow:var(--e3);font-weight:600;display:flex;gap:var(--s4);align-items:center;z-index:30;max-width:calc(100vw - 32px)}
+.toast .btn-ghost{color:var(--accent);min-height:40px}
+.avatar{width:32px;height:32px;border-radius:50%;display:inline-grid;place-items:center;font-size:13px;font-weight:800;background:var(--accent);color:var(--on-accent);flex:none}
+.avatar.host{background:var(--primary);color:var(--on-primary)}
+.skeleton{background:linear-gradient(90deg,var(--surface-2),var(--border),var(--surface-2));background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:var(--r-md)}
+@keyframes shimmer{to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+/* ===== App shell ===== */
+.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 var(--s6);border-bottom:1px solid var(--border);background:var(--surface)}
+.logo{display:flex;align-items:center;gap:var(--s2);font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--ink);text-decoration:none}
+.logo-mark{width:32px;height:32px;border-radius:10px;background:var(--accent);display:grid;place-items:center;transform:rotate(-6deg);box-shadow:var(--e1)}
+.logo-mark svg{width:20px;height:20px}
+.conn{display:inline-flex;align-items:center;gap:var(--s2);font-size:14px;font-weight:700;color:var(--muted)}
+.conn i{width:10px;height:10px;border-radius:50%;background:#2E9E6B;box-shadow:0 0 0 4px rgba(46,158,107,.18)}
+.conn.off i{background:var(--error);box-shadow:0 0 0 4px rgba(179,38,30,.18)}
+.wrap{max-width:1200px;margin:0 auto;padding:var(--s6)}
+.screen{display:none} .screen.active{display:block}
+/* create */
+.create-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:var(--s7);align-items:start}
+.hero-copy h1{font-size:56px;line-height:1.02;margin-bottom:var(--s4)}
+.hero-copy h1 em{font-style:normal;background:var(--accent);color:var(--on-accent);padding:0 .15em;border-radius:8px;display:inline-block;transform:rotate(-1.5deg)}
+.hero-copy .lede{font-size:20px;color:var(--muted);max-width:30ch}
+.stickers{display:flex;gap:var(--s3);margin-top:var(--s6);flex-wrap:wrap}
+.form{padding:var(--s6);display:flex;flex-direction:column;gap:var(--s5)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4)}
+.slot-config{display:flex;flex-direction:column;gap:var(--s2)}
+.slot-config .line{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) 0;border-bottom:1px dashed var(--border)}
+.slot-config .line:last-child{border-bottom:0}
+.cat-dot{display:inline-flex;align-items:center;gap:var(--s2);font-weight:700}
+.cat-dot::before{content:"";width:12px;height:12px;border-radius:4px;background:var(--c)}
+/* share */
+.center{max-width:640px;margin:var(--s7) auto;padding:0 var(--s4)}
+.linkbox{display:flex;gap:var(--s2);align-items:center;padding:var(--s3);border:1.5px dashed var(--border-ui);border-radius:var(--r-md);background:var(--surface-2)}
+.linkbox code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-mono);font-size:14px}
+/* board */
+.board-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--s5);margin-bottom:var(--s5);flex-wrap:wrap}
+.meta{display:flex;gap:var(--s4);flex-wrap:wrap;color:var(--muted);font-size:14px;font-weight:600;margin-top:var(--s2)}
+.board-grid{display:grid;grid-template-columns:1fr 340px;gap:var(--s5);align-items:start}
+.groups{display:flex;flex-direction:column;gap:var(--s5)}
+.group h3{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3)}
+.group h3 .count{font-family:var(--font-body);font-size:14px;color:var(--muted);font-weight:600}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3)}
+.slot{min-height:96px;border-radius:var(--r-lg);padding:var(--s3) var(--s4);display:flex;flex-direction:column;justify-content:space-between;gap:var(--s2);position:relative}
+.slot.open{border:2px dashed var(--border-ui);background:transparent;color:var(--muted);cursor:pointer;text-align:left;font:inherit}
+.slot.open:hover{border-color:var(--primary);color:var(--ink);background:var(--surface)}
+.slot.open .plus{font-weight:800;color:var(--primary)}
+.slot.open .hint{font-size:12px;font-weight:700;color:var(--warn-ink);background:var(--warn-bg);border-radius:var(--r-pill);padding:2px 8px;align-self:flex-start}
+.slot.claimed{background:var(--surface);border:1px solid var(--border);box-shadow:var(--e2);border-left:8px solid var(--c)}
+.slot.claimed:nth-child(odd){transform:rotate(-.6deg)} .slot.claimed:nth-child(even){transform:rotate(.5deg)}
+.slot.claimed .dish{font-weight:700;font-size:17px;line-height:1.25}
+.slot.claimed .by{display:flex;align-items:center;gap:var(--s2);font-size:14px;color:var(--muted)}
+.slot.claimed .by .avatar{width:24px;height:24px;font-size:11px}
+.slot.mine{outline:2px solid var(--primary);outline-offset:2px}
+.slot .release{position:absolute;top:6px;right:6px;min-height:40px;min-width:40px}
+.slot.just{animation:pop var(--dur-slow) var(--ease)}
+@keyframes pop{0%{transform:scale(.92)}60%{transform:scale(1.03) rotate(-1deg)}100%{transform:scale(1)}}
+.side{display:flex;flex-direction:column;gap:var(--s4)}
+.panel{padding:var(--s5)}
+.meter{display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s3)}
+.need{display:grid;grid-template-columns:1fr auto;gap:2px var(--s3);align-items:center}
+.need .bar{grid-column:1/-1;height:8px;border-radius:var(--r-pill);background:var(--surface-2);overflow:hidden}
+.need .bar b{display:block;height:100%;background:var(--primary);border-radius:inherit}
+.need.gap .bar b{background:var(--error)} .need.thin .bar b{background:var(--accent)}
+.need .st{font-size:12px;font-weight:800;padding:2px 8px;border-radius:var(--r-pill)}
+.need.ok .st{background:var(--ok-bg);color:var(--ok-ink)} .need.thin .st{background:var(--warn-bg);color:var(--warn-ink)} .need.gap .st{background:var(--err-bg);color:var(--err-ink)}
+.people{display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s3)}
+.people li{display:flex;align-items:center;gap:var(--s2);font-size:14px} .people ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s2)}
+.locked-banner{margin-bottom:var(--s4)}
+.mobile-cov{display:none}
+/* dialog */
+.scrim{position:fixed;inset:0;background:rgba(10,16,14,.55);display:grid;place-items:center;z-index:20;padding:var(--s4)}
+.dialog{width:min(520px,100%);background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--e3);padding:var(--s6);display:flex;flex-direction:column;gap:var(--s5)}
+.dialog .actions{display:flex;justify-content:flex-end;gap:var(--s3)}
+/* host */
+.settings{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:var(--s5)}
+.setting{display:flex;justify-content:space-between;align-items:center;gap:var(--s5);padding:var(--s5)}
+.switch{width:56px;height:32px;border-radius:var(--r-pill);background:var(--border-ui);position:relative;border:0;cursor:pointer;flex:none}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left var(--dur-base) var(--ease)}
+.switch[aria-checked="true"]{background:var(--primary)} .switch[aria-checked="true"]::after{left:28px}
+.danger-zone{border-color:var(--error)}
+/* notfound */
+.nf{text-align:center;max-width:520px;margin:var(--s8) auto;padding:0 var(--s4);display:flex;flex-direction:column;gap:var(--s4);align-items:center}
+.plate{width:160px;height:160px}
+/* dev nav (hidden in screenshots) */
+.devnav{position:fixed;right:12px;bottom:12px;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--e2);padding:8px;display:flex;flex-wrap:wrap;gap:4px;max-width:420px;font-size:12px}
+.devnav a{color:var(--primary);padding:4px 6px;border-radius:6px;text-decoration:none;font-weight:700} .devnav a:hover{background:var(--surface-2)}
+.shot .devnav{display:none}
+/* overview */
+.ov{padding:40px;display:flex;flex-direction:column;gap:24px}
+.ov-grid{display:grid;grid-template-columns:repeat(4,246px);gap:28px 32px;justify-content:center}
+.ov-item{display:flex;flex-direction:column;gap:8px;align-items:center}
+.ov-frame{box-sizing:content-box;width:234px;height:506px;border-radius:24px;overflow:hidden;border:6px solid #1B2421;box-shadow:var(--e3);background:var(--bg)}
+.ov-frame iframe{width:390px;height:844px;border:0;transform:scale(.6);transform-origin:0 0}
+.ov-item span{font-weight:700;font-size:14px}
+.screen.ov-screen.active ~ .devnav{display:none}
+/* ===== Responsive: mobile (<= 720px) ===== */
+@media (max-width:720px){
+  .topbar{padding:0 var(--s4);height:56px} .logo{font-size:19px}
+  .wrap{padding:var(--s4)}
+  h1{font-size:30px} .hero-copy h1{font-size:38px} .hero-copy .lede{font-size:17px}
+  .create-grid{grid-template-columns:1fr;gap:var(--s5)} .stickers{display:none}
+  .form{padding:var(--s4)} .row{grid-template-columns:1fr}
+  .board-grid{grid-template-columns:1fr} .side{display:none}
+  .slots{grid-template-columns:1fr 1fr}
+  .board-head .btn{display:none}
+  .mobile-cov{display:flex}
+  .scrim{place-items:end center;padding:0}
+  .dialog{border-radius:var(--r-lg) var(--r-lg) 0 0;padding:var(--s5)}
+  .dialog .actions{flex-direction:column-reverse} .dialog .actions .btn{width:100%}
+  .setting{flex-direction:column;align-items:flex-start}
+  .center{margin:var(--s5) auto}
+  .hide-m{display:none}
+  .toast{bottom:var(--s4);left:var(--s4);right:var(--s4);transform:none;width:auto;justify-content:space-between}
+}
+</style>
+</head>
+<body>
+<header class="topbar" id="topbar">
+  <a class="logo" href="#create" aria-label="Dishpatch home">
+    <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#1B2421" stroke-width="2.2" stroke-linecap="round"><path d="M3 14h18"/><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 5v2"/><path d="M4 18h16"/></svg></span>
+    Dishpatch
+  </a>
+  <span class="conn" id="conn" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Live · 6 here</span></span>
+</header>
+
+<main id="main">
+
+<!-- ================= S1 create ================= -->
+<section class="screen" data-screen="create" aria-labelledby="create-h">
+  <div class="wrap create-grid">
+    <div class="hero-copy">
+      <p class="xs muted" style="font-weight:700;text-transform:uppercase;margin-bottom:12px">Potluck sign-up, minus the spreadsheet</p>
+      <h1 id="create-h">Who's bringing <em>what?</em></h1>
+      <p class="lede">Make a board, share one link, and watch dishes get claimed live. Dishpatch also tells you when nobody's bringing anything your vegan friends can eat.</p>
+      <div class="stickers" aria-hidden="true">
+        <div class="slot claimed" style="--c:var(--cat-main);width:200px"><span class="dish">Ghormeh sabzi</span><span class="by"><span class="avatar">RZ</span>Reza</span></div>
+        <div class="slot claimed" style="--c:var(--cat-dessert);width:200px"><span class="dish">Saffron rice pudding</span><span class="by"><span class="avatar">LE</span>Leila</span></div>
+      </div>
+    </div>
+    <form class="card form" aria-describedby="create-err" onsubmit="go('share');return false" novalidate>
+      <h2>New potluck</h2>
+      <div class="banner banner-err state-only" data-show="error" id="create-err" role="alert"><span class="icon" aria-hidden="true">!</span><span>Fix 2 fields to create your board.</span></div>
+      <div class="field"><label for="c-title">Event name</label>
+        <input class="input" id="c-title" value="Friendsgiving at Mina's" data-err-class="0" maxlength="80">
+        </div>
+      <div class="row">
+        <div class="field"><label for="c-date">Date &amp; time</label>
+          <input class="input" id="c-date" value="Sat 21 Nov 2026, 18:00" data-error-value="" aria-describedby="c-date-err">
+          <span class="err state-only" data-show="error" id="c-date-err">Pick a date in the future.</span></div>
+        <div class="field"><label for="c-loc">Where <span class="muted">(optional)</span></label>
+          <input class="input" id="c-loc" value="Mina's flat, 3rd floor"></div>
+      </div>
+      <div class="field"><label for="c-host">Your name</label>
+        <input class="input" id="c-host" value="Mina" aria-describedby="c-host-err">
+        <span class="err state-only" data-show="error" id="c-host-err">Add a name so guests know who's hosting.</span></div>
+      <fieldset class="field" style="border:0;padding:0;margin:0">
+        <legend style="font-weight:700;font-size:14px;margin-bottom:4px">Slots to fill</legend>
+        <div class="slot-config">
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-main)">Mains</span><span class="stepper"><button type="button" aria-label="Fewer mains">−</button><span aria-live="polite">3</span><button type="button" aria-label="More mains">+</button></span></div>
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-side)">Sides</span><span class="stepper"><button type="button" aria-label="Fewer sides">−</button><span>3</span><button type="button" aria-label="More sides">+</button></span></div>
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-salad)">Salads</span><span class="stepper"><button type="button" aria-label="Fewer salads">−</button><span>2</span><button type="button" aria-label="More salads">+</button></span></div>
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-dessert)">Desserts</span><span class="stepper"><button type="button" aria-label="Fewer desserts">−</button><span>2</span><button type="button" aria-label="More desserts">+</button></span></div>
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-drinks)">Drinks</span><span class="stepper"><button type="button" aria-label="Fewer drinks">−</button><span>2</span><button type="button" aria-label="More drinks">+</button></span></div>
+        </div>
+      </fieldset>
+      <button class="btn btn-primary" type="submit">Create board</button>
+      <p class="xs muted">No account needed. Boards and guest names are deleted 14 days after the event.</p>
+    </form>
+  </div>
+</section>
+
+<!-- ================= S2 share ================= -->
+<section class="screen" data-screen="share" aria-labelledby="share-h">
+  <div class="center">
+    <div class="card" style="padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div><p class="xs muted" style="font-weight:700;text-transform:uppercase">Board created</p><h1 id="share-h" style="font-size:32px;margin-top:4px">Friendsgiving at Mina's</h1><p class="muted" style="margin-top:4px">Sat 21 Nov 2026 · 18:00 · 12 slots</p></div>
+      <div class="field"><label id="inv-l">Guest invite link — send this to the group</label>
+        <div class="linkbox"><code aria-labelledby="inv-l">dishpatch.app/e/q8Zp2vN7…kT4w</code><button class="btn btn-secondary btn-sm" onclick="go('share','copied')">Copy</button></div></div>
+      <div class="field"><label id="host-l">Your host link — keep this private</label>
+        <div class="linkbox"><code aria-labelledby="host-l">dishpatch.app/h/Wm3sQe9L…Xa0c</code><button class="btn btn-secondary btn-sm">Copy</button></div>
+        <p class="small muted">Anyone with the host link can lock the board and remove claims. Open it on another device to manage from there.</p></div>
+      <div class="banner banner-warn"><span class="icon" aria-hidden="true">🔑</span><span>We can't show the host link again. Save it now (bookmark or password manager).</span></div>
+      <a class="btn btn-primary" href="#board">Go to the board</a>
+    </div>
+  </div>
+  <div class="toast state-only" data-show="copied" role="status">Invite link copied</div>
+</section>
+
+<!-- ================= S3 join ================= -->
+<section class="screen" data-screen="join" aria-labelledby="join-h">
+  <div class="center">
+    <div class="card state-hide" data-hide="error" style="padding:32px;display:flex;flex-direction:column;gap:24px">
+      <div>
+        <p class="xs muted" style="font-weight:700;text-transform:uppercase">Mina invited you to</p>
+        <h1 id="join-h" style="font-size:32px;margin-top:4px">Friendsgiving at Mina's</h1>
+        <div class="meta"><span>📅 Sat 21 Nov · 18:00</span><span>📍 Mina's flat, 3rd floor</span><span>👥 6 going</span></div>
+      </div>
+      <div class="field"><label for="j-name">Your name</label><input class="input" id="j-name" value="Priya" maxlength="40"><span class="xs muted">Shown to everyone on this board.</span></div>
+      <fieldset style="border:0;padding:0;margin:0" class="field">
+        <legend style="font-weight:700;font-size:14px;margin-bottom:8px">Anything you can't eat? <span class="muted" style="font-weight:400">(optional)</span></legend>
+        <div class="chips">
+          <button type="button" class="chip" aria-pressed="false">Vegetarian</button>
+          <button type="button" class="chip" aria-pressed="true">Vegan</button>
+          <button type="button" class="chip" aria-pressed="false">Gluten-free</button>
+          <button type="button" class="chip" aria-pressed="false">Dairy-free</button>
+          <button type="button" class="chip" aria-pressed="false">Nut-free</button>
+          <button type="button" class="chip" aria-pressed="false">Halal</button>
+        </div>
+        <span class="xs muted" style="margin-top:6px">Only the board sees this, and it's deleted with the board.</span>
+      </fieldset>
+      <button class="btn btn-primary" onclick="go('board')" data-loading-label="Joining…">Join the board</button>
+    </div>
+    <div class="card state-only" data-show="error" style="padding:32px;display:flex;flex-direction:column;gap:16px;align-items:flex-start" role="alert">
+      <svg class="plate" viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="64" fill="var(--surface-2)" stroke="var(--border-ui)" stroke-width="3"/><circle cx="80" cy="80" r="40" fill="none" stroke="var(--border-ui)" stroke-width="2" stroke-dasharray="6 6"/><path d="M62 70l36 20M98 70L62 90" stroke="var(--error)" stroke-width="6" stroke-linecap="round"/></svg>
+      <h1 style="font-size:28px">This invite link doesn't work anymore</h1>
+      <p class="muted">The host may have made a new link, or the event is over. Ask them to send the latest invite.</p>
+      <a class="btn btn-secondary" href="#create">Start your own board</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S4 board ================= -->
+<section class="screen" data-screen="board" aria-labelledby="board-h">
+  <div class="wrap">
+    <div class="banner banner-err state-only" data-show="offline" role="status" style="margin-bottom:16px"><span class="icon" aria-hidden="true">⟳</span><span>Connection lost. Reconnecting… Claims are paused until you're back.</span></div>
+    <div class="banner banner-warn locked-banner state-only" data-show="locked" role="status"><span class="icon" aria-hidden="true">🔒</span><span>Mina locked the board. You can still look, but claims are closed.</span></div>
+    <div class="board-head">
+      <div>
+        <h1 id="board-h">Friendsgiving at Mina's</h1>
+        <div class="meta"><span>📅 Sat 21 Nov · 18:00</span><span>📍 Mina's flat, 3rd floor</span><span class="state-hide" data-hide="loading empty">🍽 6 of 12 claimed</span><span class="state-only" data-show="empty">🍽 0 of 12 claimed</span></div>
+      </div>
+      <a class="btn btn-secondary" href="#host">Host settings</a>
+    </div>
+
+    <a class="banner banner-warn mobile-cov state-hide" data-hide="loading empty" href="#coverage" style="margin-bottom:16px;text-decoration:none"><span class="icon" aria-hidden="true">⚠</span><span>No vegan main yet · nut-free: nothing yet. <u>See coverage</u></span></a>
+
+    <div class="board-grid">
+      <div class="groups" id="groups"></div>
+      <aside class="side" aria-label="Dietary coverage and guests">
+        <div class="card panel">
+          <h3>Dietary coverage</h3>
+          <p class="small muted">Based on what 6 guests told us.</p>
+          <div class="meter" id="side-meter"></div>
+          <a class="btn btn-ghost btn-sm" href="#coverage" style="margin-top:8px;padding:0">Details →</a>
+        </div>
+        <div class="card panel">
+          <h3>Who's coming <span class="muted small">(6)</span></h3>
+          <div class="people"><ul id="people"></ul></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div class="toast state-only" data-show="conflict" role="alert">Sam just took the last dessert slot. <button class="btn btn-ghost" onclick="go('board')">OK</button></div>
+</section>
+
+<!-- ================= S5 claim (dialog over board) ================= -->
+<section class="screen" data-screen="claim" aria-label="Claim a slot">
+  <div class="scrim">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="claim-h">
+      <div><p class="xs muted" style="font-weight:700;text-transform:uppercase"><span class="cat-dot" style="--c:var(--cat-main)">Main</span> · slot 2 of 3</p><h2 id="claim-h" style="margin-top:6px">What are you bringing?</h2></div>
+      <div class="banner banner-err state-only" data-show="error" role="alert"><span class="icon" aria-hidden="true">!</span><span>Jonah just claimed this slot. Pick another open main — the third one is still free.</span></div>
+      <div class="field"><label for="d-name">Dish</label><input class="input" id="d-name" value="Mushroom & chestnut pie" maxlength="60"></div>
+      <fieldset style="border:0;padding:0;margin:0" class="field">
+        <legend style="font-weight:700;font-size:14px;margin-bottom:8px">It's suitable for…</legend>
+        <div class="chips">
+          <button type="button" class="chip" aria-pressed="true">Vegetarian</button>
+          <button type="button" class="chip" aria-pressed="true">Vegan</button>
+          <button type="button" class="chip" aria-pressed="false">Gluten-free</button>
+          <button type="button" class="chip" aria-pressed="true">Dairy-free</button>
+          <button type="button" class="chip" aria-pressed="false">Nut-free</button>
+          <button type="button" class="chip" aria-pressed="true">Halal</button>
+        </div>
+      </fieldset>
+      <div class="banner banner-ok state-hide" data-hide="error"><span class="icon" aria-hidden="true">✓</span><span>This covers the vegan main gap for 2 guests.</span></div>
+      <div class="actions">
+        <a class="btn btn-secondary" href="#board">Cancel</a>
+        <button class="btn btn-primary state-hide" data-hide="submitting error" onclick="go('board')">Claim slot</button>
+        <button class="btn btn-primary state-only" data-show="submitting" aria-busy="true" disabled><span class="spin" aria-hidden="true"></span>Claiming…</button>
+        <a class="btn btn-primary state-only" data-show="error" href="#board">Back to board</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S6 coverage ================= -->
+<section class="screen" data-screen="coverage" aria-labelledby="cov-h">
+  <div class="wrap" style="max-width:760px">
+    <a class="btn btn-ghost" href="#board" style="padding:0;margin-bottom:8px">← Back to board</a>
+    <h1 id="cov-h">Dietary coverage</h1>
+    <p class="muted" style="margin-top:6px">What guests need vs. what's on the board. Updates live as dishes are claimed.</p>
+    <div class="banner banner-ok state-only" data-show="empty" style="margin-top:24px"><span class="icon" aria-hidden="true">✓</span><span>No one has listed dietary needs yet. Coverage appears here when guests join with needs.</span></div>
+    <div class="card panel state-hide" data-hide="empty" style="margin-top:24px">
+      <div class="meter" id="full-meter"></div>
+    </div>
+    <div class="card panel state-hide" data-hide="empty" style="margin-top:16px">
+      <h3>How we decide</h3>
+      <ul class="small muted" style="margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+        <li><b>Covered</b>: at least one compatible main, plus one more compatible dish.</li>
+        <li><b>Thin</b>: compatible dishes exist, but no compatible main.</li>
+        <li><b>Gap</b>: guests need it and nothing on the board fits.</li>
+        <li>Vegan dishes count as vegetarian and dairy-free too.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S7 host ================= -->
+<section class="screen" data-screen="host" aria-labelledby="host-h">
+  <div class="wrap">
+    <div class="settings">
+      <a class="btn btn-ghost" href="#board" style="padding:0;align-self:flex-start">← Back to board</a>
+      <h1 id="host-h">Host settings</h1>
+      <div class="card setting"><div><h3>Lock the board</h3><p class="small muted">Stops new claims and releases. Guests can still see the board.</p></div><button class="switch" role="switch" aria-checked="false" aria-label="Lock the board"></button></div>
+      <div class="card setting"><div><h3>Make a new invite link</h3><p class="small muted">The old link stops working. People who already joined stay on the board.</p></div><button class="btn btn-secondary">New link</button></div>
+      <div class="card panel">
+        <h3>Slots</h3><p class="small muted">Add open slots or remove empty ones. Remove a claim first to delete a claimed slot.</p>
+        <div class="slot-config" style="margin-top:12px">
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-main)">Mains <span class="muted small">· 2 claimed</span></span><span class="stepper"><button aria-label="Remove an empty main slot">−</button><span>3</span><button aria-label="Add a main slot">+</button></span></div>
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-side)">Sides <span class="muted small">· 2 claimed</span></span><span class="stepper"><button aria-label="Remove an empty side slot">−</button><span>3</span><button aria-label="Add a side slot">+</button></span></div>
+          <div class="line"><span class="cat-dot" style="--c:var(--cat-dessert)">Desserts <span class="muted small">· 1 claimed</span></span><span class="stepper"><button aria-label="Remove an empty dessert slot">−</button><span>2</span><button aria-label="Add a dessert slot">+</button></span></div>
+        </div>
+      </div>
+      <div class="card setting danger-zone"><div><h3>Delete this board</h3><p class="small muted">Removes the board, every claim and every guest name now. This can't be undone.</p></div><a class="btn btn-danger" href="#host/confirm">Delete board</a></div>
+    </div>
+  </div>
+  <div class="scrim state-only" data-show="confirm">
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="del-h" aria-describedby="del-d">
+      <h2 id="del-h">Delete “Friendsgiving at Mina's”?</h2>
+      <p id="del-d" class="muted">6 guests and 6 claims will be removed for everyone, right now. Type the event name to confirm.</p>
+      <div class="field"><label for="del-in">Event name</label><input class="input" id="del-in" placeholder="Friendsgiving at Mina's"></div>
+      <div class="actions"><a class="btn btn-secondary" href="#host">Keep board</a><button class="btn btn-danger" disabled>Delete for everyone</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= S8 notfound ================= -->
+<section class="screen" data-screen="notfound" aria-labelledby="nf-h">
+  <div class="nf">
+    <svg class="plate" viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="64" fill="var(--surface-2)" stroke="var(--border-ui)" stroke-width="3"/><circle cx="80" cy="80" r="40" fill="none" stroke="var(--border-ui)" stroke-width="2" stroke-dasharray="6 6"/><text x="80" y="92" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="34" fill="var(--muted)">404</text></svg>
+    <h1>Nothing on this plate</h1>
+    <p class="muted">This board doesn't exist, was deleted, or you haven't joined it on this device. Open the invite link the host sent you.</p>
+    <a class="btn btn-primary" href="#create">Start a new board</a>
+  </div>
+</section>
+
+<!-- ================= Overview ================= -->
+<section class="screen ov-screen" data-screen="overview" aria-label="All screens">
+  <div class="ov">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;max-width:1032px;margin:0 auto;width:100%">
+      <div><h1 style="font-size:36px">Dishpatch — MVP screens</h1><p class="muted">Day 01 · Web full-stack · live potluck board with race-safe claims and dietary coverage</p></div>
+      <span class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1B2421" stroke-width="2.2" stroke-linecap="round"><path d="M3 14h18"/><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 5v2"/><path d="M4 18h16"/></svg></span>Dishpatch</span>
+    </div>
+    <div class="ov-grid" id="ov-grid"></div>
+  </div>
+</section>
+</main>
+
+<nav class="devnav" aria-label="Mockup navigation" id="devnav"></nav>
+
+<script>
+const SCREENS = {
+  create:["default","error"], share:["default","copied"], join:["default","error"],
+  board:["default","loading","empty","offline","locked","conflict"], claim:["default","submitting","error"],
+  coverage:["default","empty"], host:["default","confirm"], notfound:["default"], overview:["default"]
+};
+const CATS = {main:["Mains","--cat-main"], side:["Sides","--cat-side"], salad:["Salads","--cat-salad"], dessert:["Desserts","--cat-dessert"], drinks:["Drinks","--cat-drinks"]};
+const BOARD = {
+  main:[{d:"Ghormeh sabzi",by:"Reza",i:"RZ",t:["Gluten-free","Dairy-free","Halal"]},{d:"Roast chicken & sumac onions",by:"Mina",i:"MI",host:1,t:["Gluten-free","Halal"]},null],
+  side:[{d:"Crispy tahdig",by:"Sam",i:"SA",t:["Vegetarian","Halal"]},{d:"Garlic green beans",by:"Priya",i:"PR",mine:1,t:["Vegan","Gluten-free"]},null],
+  salad:[{d:"Shirazi salad",by:"Jonah",i:"JO",t:["Vegan","Gluten-free"]},null],
+  dessert:[{d:"Saffron rice pudding",by:"Leila",i:"LE",t:["Vegetarian","Gluten-free"]},null],
+  drinks:[null,null]
+};
+const NEEDS = [
+  {n:"Vegan",k:2,c:2,st:"thin",msg:"No vegan main yet"},
+  {n:"Gluten-free",k:1,c:5,st:"ok",msg:"Covered"},
+  {n:"Nut-free",k:1,c:0,st:"gap",msg:"Nothing yet"},
+  {n:"Halal",k:2,c:3,st:"ok",msg:"Covered"}
+];
+const PEOPLE=[["Mina","MI",1,"Host"],["Reza","RZ",0,"Halal"],["Sam","SA",0,""],["Leila","LE",0,"Nut-free"],["Jonah","JO",0,"Gluten-free"],["Priya (you)","PR",0,"Vegan"]];
+
+function renderBoard(state){
+  const g=document.getElementById("groups"); g.innerHTML="";
+  for(const [cat,[label,cv]] of Object.entries(CATS)){
+    const items=BOARD[cat]; const claimed=state==="empty"?0:items.filter(Boolean).length;
+    const sec=document.createElement("section"); sec.className="group"; sec.setAttribute("aria-label",label);
+    let h=`<h3><span class="cat-dot" style="--c:var(${cv})">${label}</span><span class="count">${claimed}/${items.length}</span></h3><div class="slots">`;
+    items.forEach((it,ix)=>{
+      if(state==="loading"){h+=`<div class="slot skeleton" aria-hidden="true"></div>`;return;}
+      if(it && state!=="empty"){
+        const just = state==="conflict" && cat==="dessert" ? "" : "";
+        h+=`<article class="slot claimed ${it.mine?"mine":""} ${just}" style="--c:var(${cv})" aria-label="${label} slot ${ix+1}: ${it.d}, brought by ${it.by}">
+          <span class="dish">${it.d}</span>
+          <span class="by"><span class="avatar ${it.host?"host":""}" aria-hidden="true">${it.i}</span>${it.by}${it.mine?" · you":""}</span>
+          <span class="chips" style="gap:4px">${it.t.map(x=>`<span class="tag">${x}</span>`).join("")}</span>
+          ${it.mine&&state!=="locked"&&state!=="offline"?`<button class="btn btn-ghost btn-sm release" aria-label="Release your ${label} slot">✕</button>`:""}
+        </article>`;
+      } else if(state==="conflict" && cat==="dessert"){
+        h+=`<article class="slot claimed just" style="--c:var(${cv})" aria-label="Dessert slot 2: Pistachio baklava, brought by Sam"><span class="dish">Pistachio baklava</span><span class="by"><span class="avatar" aria-hidden="true">SA</span>Sam</span><span class="chips" style="gap:4px"><span class="tag">Vegetarian</span></span></article>`;
+      } else {
+        const dis = state==="locked"||state==="offline";
+        const hint = (!dis && cat==="main" && state!=="empty") ? `<span class="hint">Vegan would help</span>` : "";
+        h+=`<button class="slot open" ${dis?"disabled aria-disabled=\"true\" style=\"opacity:.55;cursor:not-allowed\"":"onclick=\"go('claim')\""} aria-label="Claim open ${label} slot ${ix+1}">
+          <span class="plus">${state==="offline"?"Paused":dis?"Closed":"+ Claim"}</span>${hint}<span class="small">Open ${label.toLowerCase().slice(0,-1)}</span></button>`;
+      }
+    });
+    h+="</div>"; sec.innerHTML=h; g.appendChild(sec);
+  }
+  if(state==="empty"){
+    const e=document.createElement("div"); e.className="banner banner-ok"; e.innerHTML=`<span class="icon" aria-hidden="true">🍽</span><span>Nothing claimed yet. Be the first — pick any open slot.</span>`;
+    g.prepend(e);
+  }
+  const pm=document.getElementById("people"); pm.innerHTML=PEOPLE.map(p=>`<li><span class="avatar ${p[2]?"host":""}" aria-hidden="true">${p[1]}</span><span style="flex:1">${p[0]}</span>${p[3]?`<span class="tag">${p[3]}</span>`:""}</li>`).join("");
+  const sm=document.getElementById("side-meter"); sm.innerHTML = state==="loading" ? `<div class="skeleton" style="height:120px"></div>` : meterHTML(state==="empty");
+}
+function meterHTML(empty){
+  return NEEDS.map(x=>{const c=empty?0:x.c; const st=empty?"gap":x.st; const pct=Math.min(100,c*25);
+    return `<div class="need ${st}"><span style="display:flex;flex-direction:column"><b>${x.n}</b><span class="small muted">${x.k} guest${x.k>1?"s":""} need${x.k>1?"":"s"} it · ${c} dish${c===1?"":"es"} fit</span></span><span class="st">${empty?"Nothing yet":x.msg}</span><span class="bar" role="img" aria-label="${x.n}: ${c} compatible dishes"><b style="width:${Math.max(pct,empty?0:4)}%"></b></span></div>`}).join("");
+}
+function go(screen,state){ location.hash = state && state!=="default" ? `${screen}/${state}` : screen; }
+function apply(){
+  const [screen="create",state="default"] = location.hash.replace(/^#/,"").split("/");
+  const s = SCREENS[screen] ? screen : "notfound";
+  document.querySelectorAll(".screen").forEach(el=>el.classList.toggle("active", el.dataset.screen===s));
+  document.body.dataset.state = state; document.body.dataset.screen = s;
+  document.querySelectorAll(".state-only").forEach(el=>{ const sec=el.closest(".screen"); el.style.display = (sec.dataset.screen===s && el.dataset.show.split(" ").includes(state)) ? "" : "none"; });
+  document.querySelectorAll(".state-hide").forEach(el=>{ el.style.display = el.dataset.hide.split(" ").includes(state) ? "none" : ""; });
+  document.querySelectorAll('[data-screen="create"] .input').forEach(el=>el.classList.remove("is-error"));
+  if(s==="create" && state==="error"){ document.getElementById("c-date").classList.add("is-error"); document.getElementById("c-host").classList.add("is-error"); document.getElementById("c-host").value=""; document.getElementById("c-date").value="Fri 1 Nov 2024, 18:00";}
+  else { document.getElementById("c-host").value="Mina"; document.getElementById("c-date").value="Sat 21 Nov 2026, 18:00"; }
+  if(s==="board"||s==="claim") renderBoard(s==="claim"?"default":state);
+  document.getElementById("full-meter").innerHTML = meterHTML(false).replaceAll('class="small muted"','class="small muted"');
+  const conn=document.getElementById("conn"); const off = (s==="board"&&state==="offline");
+  conn.classList.toggle("off",off); conn.querySelector("span").textContent = off ? "Reconnecting…" : "Live · 6 here";
+  conn.style.visibility = ["board","claim","coverage","host"].includes(s) ? "visible" : "hidden";
+  document.getElementById("topbar").style.display = s==="overview" ? "none" : "";
+  if(s==="claim"){ document.querySelector('[data-screen="board"]').classList.add("active"); }
+  if(s==="overview") buildOverview();
+  const d=document.querySelector(".screen.active h1, .screen.active h2"); document.title = `Dishpatch — ${s}${state!=="default"?" / "+state:""}`;
+}
+function buildOverview(){
+  const g=document.getElementById("ov-grid"); if(g.childElementCount) return;
+  const items=[["create","Create board"],["share","Share links"],["join","Join"],["board","Live board"],["claim","Claim a dish"],["coverage","Dietary coverage"],["host","Host settings"],["board/conflict","Claim conflict"]];
+  const base = location.pathname;
+  g.innerHTML = items.map(([h,l])=>`<div class="ov-item"><div class="ov-frame"><iframe title="${l}" src="${base}?shot=1#${h}" loading="eager" tabindex="-1"></iframe></div><span>${l}</span></div>`).join("");
+}
+// dev nav
+document.getElementById("devnav").innerHTML = Object.entries(SCREENS).flatMap(([s,st])=>st.map(x=>`<a href="#${x==="default"?s:s+"/"+x}">${s}${x==="default"?"":"/"+x}</a>`)).join("") + `<a href="#" onclick="const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';return false">◐ theme</a>`;
+if(new URLSearchParams(location.search).has("shot")) document.body.classList.add("shot");
+// chip toggles for clickability
+document.addEventListener("click",e=>{const c=e.target.closest(".chip"); if(c) c.setAttribute("aria-pressed", c.getAttribute("aria-pressed")==="true"?"false":"true"); const sw=e.target.closest(".switch"); if(sw) sw.setAttribute("aria-checked", sw.getAttribute("aria-checked")==="true"?"false":"true");});
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && ["claim"].includes(document.body.dataset.screen)) go("board"); });
+window.addEventListener("hashchange",apply); apply();
+</script>
+</body>
+</html>

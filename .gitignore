@@ -1,0 +1,42 @@
+# --- secrets / env (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+local.properties
+
+# --- Node / pnpm ---
+node_modules/
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+.npmrc.local
+
+# --- build outputs ---
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+.turbo/
+
+# --- tests ---
+playwright-report/
+test-results/
+blob-report/
+e2e/visual-output/
+
+# --- Docker ---
+docker-compose.override.yml
+pgdata/
+
+# --- IDE / OS ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+.DS_Store
+Thumbs.db
