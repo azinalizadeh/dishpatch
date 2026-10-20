@@ -1,0 +1,33 @@
+/* Design tokens copied verbatim from design/mockup.html (:root + dark blocks). Do not edit to match code (AGENTS.md rule 6).
+   Only change: the display family lists "Bricolage Grotesque Variable" first, the name Fontsource registers. */
+:root{
+  --bg:#F6F7F2; --surface:#FFFFFF; --surface-2:#EEF1EA; --ink:#1B2421; --muted:#56635E; --border:#D9DED6; --border-ui:#8A968F;
+  --primary:#1F6F5C; --on-primary:#FFFFFF; --primary-soft:#DDEFE8; --accent:#F2B33D; --on-accent:#1B2421;
+  --error:#B3261E; --on-error:#FFFFFF; --err-bg:#FBE3E0; --err-ink:#8C1D18;
+  --warn-bg:#FDF0D2; --warn-ink:#7A4B00; --ok-bg:#DDF3E6; --ok-ink:#14532D;
+  --cat-main:#1F6F5C; --on-cat-main:#FFFFFF; --cat-side:#F2B33D; --on-cat-side:#1B2421; --cat-salad:#4D7A12; --on-cat-salad:#FFFFFF;
+  --cat-dessert:#B4245D; --on-cat-dessert:#FFFFFF; --cat-drinks:#2160A8; --on-cat-drinks:#FFFFFF; --cat-other:#5B6470; --on-cat-other:#FFFFFF;
+  --focus:#2160A8;
+  --font-display:"Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif; --font-body:"Atkinson Hyperlegible Next", system-ui, sans-serif; --font-mono:"JetBrains Mono", ui-monospace, monospace;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px;
+  --r-sm:6px; --r-md:10px; --r-lg:16px; --r-pill:999px;
+  --e1:0 1px 2px rgba(20,30,25,.08),0 1px 1px rgba(20,30,25,.04); --e2:0 4px 12px rgba(20,30,25,.10); --e3:0 12px 32px rgba(20,30,25,.18);
+  --dur-fast:120ms; --dur-base:200ms; --dur-slow:320ms; --ease:cubic-bezier(.2,.8,.2,1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#101614; --surface:#18201D; --surface-2:#1F2925; --ink:#E8EEEA; --muted:#A3B1AB; --border:#2C3833; --border-ui:#5E6E67;
+  --primary:#5CC8A8; --on-primary:#0B1F19; --primary-soft:#173A30; --accent:#F2C35B; --on-accent:#1B2421;
+  --error:#FF8A7A; --on-error:#2A0906; --err-bg:#3A1512; --err-ink:#FFB4A9; --warn-bg:#2E2410; --warn-ink:#F7D27A; --ok-bg:#10281C; --ok-ink:#8EE0B5;
+  --cat-main:#5CC8A8; --on-cat-main:#0B1F19; --cat-side:#F2C35B; --on-cat-side:#1B2421; --cat-salad:#9CCB5A; --on-cat-salad:#0F1A05;
+  --cat-dessert:#F28DB5; --on-cat-dessert:#2A0716; --cat-drinks:#86B7F0; --on-cat-drinks:#06162B; --cat-other:#B6BEC8; --on-cat-other:#111418;
+  --focus:#86B7F0; --e1:0 1px 2px rgba(0,0,0,.4); --e2:0 4px 12px rgba(0,0,0,.45); --e3:0 12px 32px rgba(0,0,0,.6); color-scheme: dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#18201D; --surface-2:#1F2925; --ink:#E8EEEA; --muted:#A3B1AB; --border:#2C3833; --border-ui:#5E6E67;
+  --primary:#5CC8A8; --on-primary:#0B1F19; --primary-soft:#173A30; --accent:#F2C35B; --on-accent:#1B2421;
+  --error:#FF8A7A; --on-error:#2A0906; --err-bg:#3A1512; --err-ink:#FFB4A9; --warn-bg:#2E2410; --warn-ink:#F7D27A; --ok-bg:#10281C; --ok-ink:#8EE0B5;
+  --cat-main:#5CC8A8; --on-cat-main:#0B1F19; --cat-side:#F2C35B; --on-cat-side:#1B2421; --cat-salad:#9CCB5A; --on-cat-salad:#0F1A05;
+  --cat-dessert:#F28DB5; --on-cat-dessert:#2A0716; --cat-drinks:#86B7F0; --on-cat-drinks:#06162B; --cat-other:#B6BEC8; --on-cat-other:#111418;
+  --focus:#86B7F0; --e1:0 1px 2px rgba(0,0,0,.4); --e2:0 4px 12px rgba(0,0,0,.45); --e3:0 12px 32px rgba(0,0,0,.6); color-scheme: dark;
+}
