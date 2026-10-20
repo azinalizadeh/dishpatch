@@ -14,7 +14,7 @@ export function TextField({ id, label, error, hint, className = '', ...rest }: T
   const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ');
   return (
     <div className={`flex flex-col gap-s1 ${className}`.trim()}>
-      <label htmlFor={id} className="text-sm font-bold">
+      <label htmlFor={id} className="text-sm/[1.5] font-bold">
         {label}
       </label>
       <input
@@ -27,12 +27,12 @@ export function TextField({ id, label, error, hint, className = '', ...rest }: T
         {...rest}
       />
       {hint ? (
-        <span id={hintId} className="text-xs tracking-[0.02em] text-muted">
+        <span id={hintId} className="text-xs/[1.5] tracking-[0.02em] text-muted">
           {hint}
         </span>
       ) : null}
       {error ? (
-        <span id={errorId} className="text-sm font-semibold text-error">
+        <span id={errorId} className="text-sm/[1.5] font-semibold text-error">
           {error}
         </span>
       ) : null}

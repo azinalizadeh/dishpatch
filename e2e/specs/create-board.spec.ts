@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -16,7 +16,11 @@ test('host creates a board and reaches the share screen in under 10 s', async ({
   await page.getByLabel('Date & time').fill(nextMonthLocal());
   await page.getByLabel('Where').fill("Mina's flat, 3rd floor");
   await page.getByLabel('Your name').fill('Mina');
+  const created = page.waitForResponse(
+    (r) => r.url().endsWith('/api/events') && r.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Create board' }).click();
+  const { inviteUrl, hostUrl } = (await (await created).json()) as Record<string, string>;
 
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}\/share$/);
   await expect(
@@ -26,14 +30,13 @@ test('host creates a board and reaches the share screen in under 10 s', async ({
 
   const invite = page.getByRole('group', { name: /Guest invite link/ }).locator('code');
   const host = page.getByRole('group', { name: /Your host link/ }).locator('code');
-  await expect(invite).toHaveText(/\/e\/[A-Za-z0-9_-]{43}$/);
-  await expect(host).toHaveText(/\/h\/[A-Za-z0-9_-]{43}$/);
+  await expect(invite).toHaveText(/\/e\/[A-Za-z0-9_-]{8}…[A-Za-z0-9_-]{4}$/);
+  await expect(host).toHaveText(/\/h\/[A-Za-z0-9_-]{8}…[A-Za-z0-9_-]{4}$/);
   await expect(page.getByText('12 slots', { exact: false })).toBeVisible();
 
   // The raw tokens live only in this screen's memory: not in storage, history state or the URL.
-  const tokens = [await invite.textContent(), await host.textContent()].map(
-    (url) => url?.split('/').pop() ?? 'missing',
-  );
+  const tokens = [inviteUrl, hostUrl].map((url) => url?.split('/').pop() ?? 'missing');
+  expect(tokens.every((t) => /^[A-Za-z0-9_-]{43}$/.test(t))).toBe(true);
   const persisted = await page.evaluate(() =>
     JSON.stringify({
       local: { ...localStorage },

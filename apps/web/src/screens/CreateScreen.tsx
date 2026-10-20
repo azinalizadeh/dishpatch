@@ -149,7 +149,7 @@ export function CreateScreen() {
     <section aria-labelledby="create-h">
       <div className="mx-auto grid max-w-[1200px] items-start gap-s5 p-s4 tablet:grid-cols-[1.05fr_1fr] tablet:gap-s7 tablet:p-s6">
         <div>
-          <p className="mb-s3 text-xs font-bold uppercase tracking-[0.02em] text-muted">
+          <p className="mb-s3 text-xs/[1.5] font-bold uppercase tracking-[0.02em] text-muted">
             Potluck sign-up, minus the spreadsheet
           </p>
           <h1 id="create-h" className="mb-s4 text-[38px] leading-[1.02] tablet:text-[56px]">
@@ -158,7 +158,7 @@ export function CreateScreen() {
               what?
             </em>
           </h1>
-          <p className="max-w-[30ch] text-[17px] text-muted tablet:text-xl">
+          <p className="max-w-[30ch] text-[17px] text-muted tablet:text-[20px]">
             Make a board, share one link, and watch dishes get claimed live. Dishpatch also tells
             you when nobody's bringing anything your vegan friends can eat.
           </p>
@@ -206,7 +206,6 @@ export function CreateScreen() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={LIMITS.titleMax}
-            placeholder="Friendsgiving at Mina's"
             readOnly={submitting}
             required
             error={errors.title}
@@ -227,13 +226,12 @@ export function CreateScreen() {
               id="c-loc"
               label={
                 <>
-                  Where <span className="font-normal text-muted">(optional)</span>
+                  Where <span className="text-muted">(optional)</span>
                 </>
               }
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               maxLength={LIMITS.locationMax}
-              placeholder="Mina's flat, 3rd floor"
               readOnly={submitting}
               error={errors.location}
             />
@@ -244,7 +242,6 @@ export function CreateScreen() {
             value={hostName}
             onChange={(e) => setHostName(e.target.value)}
             maxLength={LIMITS.nameMax}
-            placeholder="Mina"
             autoComplete="given-name"
             readOnly={submitting}
             required
@@ -255,7 +252,7 @@ export function CreateScreen() {
             className="flex flex-col gap-s1"
             aria-describedby={errors.slots ? 'c-slots-err' : undefined}
           >
-            <legend className="mb-s1 text-sm font-bold">Slots to fill</legend>
+            <legend className="mb-s1 text-sm/[1.5] font-bold">Slots to fill</legend>
             <div className="flex flex-col gap-s2">
               {CATEGORIES.map((category) => {
                 const { plural, dot } = CATEGORY_LABELS[category];
@@ -284,7 +281,7 @@ export function CreateScreen() {
               })}
             </div>
             {errors.slots ? (
-              <span id="c-slots-err" className="text-sm font-semibold text-error">
+              <span id="c-slots-err" className="text-sm/[1.5] font-semibold text-error">
                 {errors.slots}
               </span>
             ) : null}
@@ -293,7 +290,7 @@ export function CreateScreen() {
           <Button type="submit" loading={submitting} loadingLabel="Creating…">
             Create board
           </Button>
-          <p className="text-xs tracking-[0.02em] text-muted">
+          <p className="text-xs/[1.5] tracking-[0.02em] text-muted">
             No account needed. Boards and guest names are deleted 14 days after the event.
           </p>
         </form>
@@ -320,7 +317,7 @@ function Sticker({
       className={`flex min-h-24 w-[200px] flex-col justify-between gap-s2 rounded-lg border border-l-8 border-border bg-surface px-s4 py-s3 shadow-e2 ${edge} ${tilt}`}
     >
       <span className="text-[17px] font-bold leading-[1.25]">{dish}</span>
-      <span className="flex items-center gap-s2 text-sm text-muted">
+      <span className="flex items-center gap-s2 text-sm/[1.5] text-muted">
         <span className="inline-grid size-6 place-items-center rounded-full bg-accent text-[11px] font-extrabold text-on-accent">
           {initials}
         </span>

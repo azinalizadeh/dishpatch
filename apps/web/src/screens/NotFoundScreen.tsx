@@ -59,7 +59,7 @@ export function NotFoundScreen({ note }: { note?: string }) {
         This board doesn't exist, was deleted, or you haven't joined it on this device. Open the
         invite link the host sent you.
       </p>
-      {note ? <p className="text-sm font-semibold text-muted">{note}</p> : null}
+      {note ? <p className="text-sm/[1.5] font-semibold text-muted">{note}</p> : null}
       <ButtonLink to="/">Start a new board</ButtonLink>
     </section>
   );

@@ -5,18 +5,18 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'md' | 'sm';
 
 const base =
-  'inline-flex items-center justify-center gap-s2 rounded-md border-[1.5px] border-transparent font-bold no-underline cursor-pointer transition-[transform,background-color] duration-[120ms] ease-dp active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 aria-busy:cursor-not-allowed aria-busy:opacity-60';
+  'inline-flex items-center justify-center gap-s2 rounded-md border-[1.5px] font-bold no-underline cursor-pointer transition-[transform,background-color] duration-[120ms] ease-dp active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 aria-busy:cursor-not-allowed aria-busy:opacity-60';
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-primary text-on-primary hover:brightness-108',
+  primary: 'border-transparent bg-primary text-on-primary hover:brightness-108',
   secondary: 'bg-transparent text-ink border-border-ui hover:bg-surface-2',
-  ghost: 'bg-transparent text-primary px-s3',
-  danger: 'bg-error text-on-error',
+  ghost: 'border-transparent bg-transparent text-primary px-s3',
+  danger: 'border-transparent bg-error text-on-error',
 };
 
 const sizes: Record<Size, string> = {
   md: 'min-h-12 px-s5 text-base',
-  sm: 'min-h-10 px-s4 text-sm',
+  sm: 'min-h-10 px-s4 text-sm/[1.5]',
 };
 
 export function buttonClasses(variant: Variant = 'primary', size: Size = 'md', extra = '') {

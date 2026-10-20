@@ -28,7 +28,7 @@ export const Banner = forwardRef<HTMLDivElement, BannerProps>(function Banner(
       id={id}
       role={role}
       tabIndex={-1}
-      className={`flex items-start gap-s3 rounded-md px-s4 py-s3 text-sm font-semibold ${tones[tone]}`}
+      className={`flex items-start gap-s3 rounded-md px-s4 py-s3 text-sm/[1.5] font-semibold ${tones[tone]}`}
     >
       <span aria-hidden="true" className="text-lg leading-[1.2]">
         {icon}

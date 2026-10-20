@@ -44,7 +44,9 @@ export function ShareScreen() {
     <section aria-labelledby="share-h" className="mx-auto my-s5 max-w-[640px] px-s4 tablet:my-s7">
       <div className="flex flex-col gap-s5 rounded-lg border border-border bg-surface p-s6 shadow-e1">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.02em] text-muted">Board created</p>
+          <p className="text-xs/[1.5] font-bold uppercase tracking-[0.02em] text-muted">
+            Board created
+          </p>
           <h1 id="share-h" className="mt-s1 text-[32px] leading-[1.1]">
             {board.title}
           </h1>
@@ -73,7 +75,7 @@ export function ShareScreen() {
             }}
             onCopyFailed={copyFailed}
           />
-          <p className="text-sm text-muted">
+          <p className="text-sm/[1.5] text-muted">
             Anyone with the host link can lock the board and remove claims. Open it on another
             device to manage from there.
           </p>
