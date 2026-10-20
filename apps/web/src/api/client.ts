@@ -16,13 +16,8 @@ export class ApiRequestError extends Error {
     this.status = status;
     this.code = error?.code ?? 'INTERNAL';
     this.requestId = error?.requestId;
-    const extra = (body as { error?: { fields?: unknown; retryAfterSeconds?: unknown } })?.error;
-    this.fields =
-      extra?.fields && typeof extra.fields === 'object'
-        ? (extra.fields as Record<string, string>)
-        : {};
-    this.retryAfterSeconds =
-      typeof extra?.retryAfterSeconds === 'number' ? extra.retryAfterSeconds : undefined;
+    this.fields = error?.fields ?? {};
+    this.retryAfterSeconds = error?.retryAfterSeconds;
   }
 }
 
@@ -31,8 +26,12 @@ export class NetworkError extends Error {
   override name = 'NetworkError';
 }
 
-/** POSTs JSON to the same-origin API (cookies included) and returns the parsed body. */
-export async function postJson<T>(path: string, body?: unknown): Promise<T> {
+/** POSTs JSON to the same-origin API (cookies included) and parses the answer with `schema`. */
+export async function postJson<T>(
+  path: string,
+  schema: { parse: (data: unknown) => T },
+  body?: unknown,
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
@@ -46,5 +45,5 @@ export async function postJson<T>(path: string, body?: unknown): Promise<T> {
   }
   const data: unknown = await res.json().catch(() => undefined);
   if (!res.ok) throw new ApiRequestError(res.status, data);
-  return data as T;
+  return schema.parse(data);
 }

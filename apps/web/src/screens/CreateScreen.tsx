@@ -2,7 +2,7 @@ import {
   CATEGORIES,
   type Category,
   CreateEventInput,
-  type CreateEventResponse,
+  CreateEventResponse,
   LIMITS,
 } from '@dishpatch/shared';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
@@ -120,7 +120,7 @@ export function CreateScreen() {
     setFailure(null);
     setSubmitting(true);
     try {
-      const created = await postJson<CreateEventResponse>('/api/events', parsed.data);
+      const created = await postJson('/api/events', CreateEventResponse, parsed.data);
       rememberCreatedBoard(parsed.data, created);
       navigate(`/events/${created.eventId}/share`);
     } catch (err) {

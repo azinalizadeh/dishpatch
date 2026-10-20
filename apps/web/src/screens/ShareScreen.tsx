@@ -30,7 +30,11 @@ export function ShareScreen() {
   // The host link exists only in memory here: warn before the tab closes if it wasn't copied.
   useEffect(() => {
     if (!board || hostCopied) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // Older Firefox/Safari only show the confirm when returnValue is set.
+      event.returnValue = '';
+    };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [board, hostCopied]);

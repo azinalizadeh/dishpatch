@@ -18,12 +18,14 @@ function text(max: number, messages: { empty: string; tooLong: string }) {
     .regex(NO_CONTROL, NO_CONTROL_MESSAGE);
 }
 
-/** The one error body every API error uses (04-architecture.md › API contract). */
+/** The one error body every API error uses (04-architecture.md › API contract), with the optional details some codes carry. */
 export const ApiErrorSchema = z.object({
   error: z.object({
     code: z.string().min(1),
     message: z.string().min(1),
     requestId: z.string().min(1),
+    fields: z.record(z.string(), z.string()).optional(),
+    retryAfterSeconds: z.number().optional(),
   }),
 });
 
