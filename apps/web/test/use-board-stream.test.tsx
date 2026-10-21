@@ -66,6 +66,40 @@ describe('useBoardStream', () => {
     expect(result.current.connection).toBe('live');
   });
 
+  it('pauses when the browser goes offline and reopens from the current seq when back', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(snapshot(4))),
+    );
+    const { result } = renderStream();
+    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+    const first = FakeEventSource.latest();
+    act(() => {
+      first.open();
+      first.emit({
+        type: 'participant.joined',
+        seq: 5,
+        participant: { id: guestId, displayName: 'Reza', dietaryNeeds: [], role: 'guest' },
+      });
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('offline'));
+    });
+    expect(first.readyState).toBe(FakeEventSource.CLOSED);
+    act(() => vi.advanceTimersByTime(2_000));
+    expect(result.current.connection).toBe('reconnecting');
+
+    act(() => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
+    expect(FakeEventSource.latest().url).toBe(`/api/events/${eventId}/stream?after=5`);
+    act(() => FakeEventSource.latest().open());
+    expect(result.current.connection).toBe('live');
+  });
+
   it('applies events in seq order, ignores replays and tracks presence', async () => {
     vi.stubGlobal(
       'fetch',

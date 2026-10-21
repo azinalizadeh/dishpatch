@@ -40,12 +40,17 @@ test('guest joins from invite link and sees the board', async ({ page, request, 
   await expect(
     page.getByRole('heading', { level: 1, name: "Friendsgiving at Mina's" }),
   ).toBeVisible();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Priya' })).toContainText('(you)');
+  // The guest list is in the desktop sidebar only, so check membership through the snapshot.
+  const members = async () => {
+    const res = await page.request.get(`/api/events/${board.eventId}`);
+    return ((await res.json()) as { participants: { displayName: string }[] }).participants;
+  };
+  expect((await members()).map((p) => p.displayName)).toEqual(['Mina', 'Priya']);
 
   // Same browser opening the invite again goes straight to the board, without a second guest.
   await page.goto(board.invitePath);
   await expect(page).toHaveURL(new RegExp(`/events/${board.eventId}$`));
-  await expect(page.getByRole('listitem')).toHaveCount(2);
+  expect(await members()).toHaveLength(2);
 });
 
 test('address bar no longer contains the invite token after joining', async ({

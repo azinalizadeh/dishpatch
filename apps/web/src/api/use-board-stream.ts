@@ -169,8 +169,22 @@ export function useBoardStream(eventId: string) {
     };
     for (const type of STREAM_EVENTS) source.addEventListener(type, onMessage);
 
+    // A dropped network can leave a dead socket that only times out much later, so trust the
+    // browser's own offline/online signal: pause now, and reopen from our seq when back.
+    const onOffline = () => {
+      source.close();
+      errorTimer ??= setTimeout(() => setConnection('reconnecting'), RECONNECTING_AFTER_MS);
+    };
+    const onOnline = () => {
+      if (source.readyState === EventSource.CLOSED) setEpoch((n) => n + 1);
+    };
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+
     return () => {
       disposed = true;
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
       clearTimeout(errorTimer);
       clearTimeout(reopenTimer);
       source.close();
