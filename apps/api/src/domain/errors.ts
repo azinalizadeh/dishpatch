@@ -23,3 +23,17 @@ export const badOrigin = () =>
 
 export const rateLimited = (message: string, retryAfterSeconds: number) =>
   new DomainError(429, 'RATE_LIMITED', message, { retryAfterSeconds });
+
+/** One answer for unknown, rotated and expired invites, so it never says whether a board existed. */
+export const inviteInvalid = () =>
+  new DomainError(404, 'INVITE_INVALID', "This invite link doesn't work anymore.");
+
+export const nameTaken = (existingName: string) =>
+  new DomainError(
+    409,
+    'NAME_TAKEN',
+    `Someone called ${existingName} is already here — add an initial?`,
+  );
+
+export const eventFull = () =>
+  new DomainError(409, 'EVENT_FULL', 'This board is full — 100 people have already joined.');
