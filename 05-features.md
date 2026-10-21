@@ -145,13 +145,13 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
 
 - **Stories:** US-07, US-08, US-09 · **Screens:** `claim` (default, submitting, error), `board` (conflict) (design/screens/claim*.png, board-conflict*.png) · **Endpoints:** `POST/DELETE /api/events/:eventId/slots/:slotId/claim` · **Entities:** slots, events (lock + seq), event_log
 - **Subtasks**
-  - [ ] F4.1 `[domain]` `ClaimInput` schema (dish 1–60, tags ⊆ DIETARY). Files: `packages/shared/src/schemas.ts`, `packages/shared/test/schemas.test.ts`. Skill: `tdd`
-  - [ ] F4.2 `[domain]` `ClaimService.claim`: tx → `SELECT … FOR UPDATE` event → locked? → count my claims (≤ 3) → conditional `UPDATE … WHERE claimed_by IS NULL RETURNING` → 0 rows: look up winner for `SLOT_TAKEN {claimedBy}` or `NOT_FOUND` → `seq+1` → log → commit → publish. Files: `apps/api/src/domain/claims.ts`, `apps/api/test/claims.int.test.ts`. Skill: `tdd`
-  - [ ] F4.3 `[domain]` `ClaimService.release` (owner or host; `NOT_CLAIMED`; locked → `BOARD_LOCKED`; logs actor role). Files: `apps/api/src/domain/claims.ts`, `apps/api/test/claims.int.test.ts`. Skill: `tdd`
-  - [ ] F4.4 `[test]` Race tests with real Postgres: 50 concurrent claims on one slot; 10 concurrent claims by one participant against the limit. Files: `apps/api/test/claim.race.int.test.ts`. Skill: `tdd`; `diagnosing-bugs` if non-deterministic
-  - [ ] F4.5 `[api]` Claim/release routes + origin check middleware + JSON-only content-type guard + per-session rate limit. Files: `apps/api/src/routes/slots.ts`, `apps/api/src/middleware/origin-check.ts`, `apps/api/test/origin-check.int.test.ts`. Skill: `tdd`
-  - [ ] F4.6 `[ui]` `ClaimDialog` (dialog/bottom sheet, focus trap, chips, live coverage preview, submitting/error/limit states, closes into error if SSE claims the slot meanwhile) + optimistic claim/release with rollback in TanStack Query mutations; release confirm popover; conflict toast. Files: `apps/web/src/screens/ClaimDialog.tsx`, `apps/web/src/components/{Dialog,Chip,Toast}.tsx`, `apps/web/src/api/queries.ts`, `apps/web/test/ClaimDialog.test.tsx`. Skill: `design-parity`
-  - [ ] F4.7 `[test]` E2E race in the UI (two contexts submit together) + XSS check on dish name. Files: `e2e/specs/{claim-race-ui.spec.ts,xss.spec.ts}`. Skill: none
+  - [x] F4.1 `[domain]` `ClaimInput` schema (dish 1–60, tags ⊆ DIETARY). Files: `packages/shared/src/schemas.ts`, `packages/shared/test/schemas.test.ts`. Skill: `tdd`
+  - [x] F4.2 `[domain]` `ClaimService.claim`: tx → `SELECT … FOR UPDATE` event → locked? → count my claims (≤ 3) → conditional `UPDATE … WHERE claimed_by IS NULL RETURNING` → 0 rows: look up winner for `SLOT_TAKEN {claimedBy}` or `NOT_FOUND` → `seq+1` → log → commit → publish. Files: `apps/api/src/domain/claims.ts`, `apps/api/test/claims.int.test.ts`. Skill: `tdd`
+  - [x] F4.3 `[domain]` `ClaimService.release` (owner or host; `NOT_CLAIMED`; locked → `BOARD_LOCKED`; logs actor role). Files: `apps/api/src/domain/claims.ts`, `apps/api/test/claims.int.test.ts`. Skill: `tdd`
+  - [x] F4.4 `[test]` Race tests with real Postgres: 50 concurrent claims on one slot; 10 concurrent claims by one participant against the limit. Files: `apps/api/test/claim.race.int.test.ts`. Skill: `tdd`; `diagnosing-bugs` if non-deterministic
+  - [x] F4.5 `[api]` Claim/release routes + origin check middleware + JSON-only content-type guard + per-session rate limit. Files: `apps/api/src/routes/slots.ts`, `apps/api/src/middleware/origin-check.ts`, `apps/api/test/origin-check.int.test.ts`. Skill: `tdd`
+  - [x] F4.6 `[ui]` `ClaimDialog` (dialog/bottom sheet, focus trap, chips, live coverage preview, submitting/error/limit states, closes into error if SSE claims the slot meanwhile) + optimistic claim/release with rollback in TanStack Query mutations; release confirm popover; conflict toast. Files: `apps/web/src/screens/ClaimDialog.tsx`, `apps/web/src/components/{Dialog,Chip,Toast}.tsx`, `apps/web/src/api/queries.ts`, `apps/web/test/ClaimDialog.test.tsx`. Skill: `design-parity`
+  - [x] F4.7 `[test]` E2E race in the UI (two contexts submit together) + XSS check on dish name. Files: `e2e/specs/{claim-race-ui.spec.ts,xss.spec.ts}`. Skill: none
 - **Tests**
   - Unit: `schemas.test.ts › ClaimInput rejects empty and 61-char dish names`.
   - Integration: `claims.int.test.ts › claim stores dish, tags, claimant and increments seq by 1`; `› claim on a claimed slot throws SLOT_TAKEN with the winner's name`; `› 4th claim by one participant throws CLAIM_LIMIT`; `› claim on a locked board throws BOARD_LOCKED`; `› claim on a slot of another event throws NOT_FOUND`; `› dish name with SQL metacharacters is stored verbatim`.
@@ -170,19 +170,19 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - T3 injection, S2 XSS via dish names → parameterised SQL, React escaping, CSP (tests above).
   - Abuse: per-session 30/min limit on claim/release; ≤ 3 claims per participant.
 - **Definition of Done**
-  - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
-  - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
-  - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
-  - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
-  - [ ] Lint/format/typecheck clean; no new warnings
-  - [ ] No secrets in code or logs; errors handled with user-friendly messages
-  - [ ] README/docs updated if behavior or setup changed
-  - [ ] Any skill used for this feature is logged in skills/usage-log.md
+  - [x] All subtasks done; acceptance criteria of linked stories pass
+  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [x] Security controls for this feature implemented and tested (at least one negative/abuse test)
+  - [x] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
+  - [x] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
+  - [x] Lint/format/typecheck clean; no new warnings
+  - [x] No secrets in code or logs; errors handled with user-friendly messages
+  - [x] README/docs updated if behavior or setup changed
+  - [x] Any skill used for this feature is logged in skills/usage-log.md
   - Feature-specific:
-  - [ ] `claim.race.int.test.ts` passes 20 times in a row locally (`for i in $(seq 20); do pnpm --filter @dishpatch/api test:race || break; done`)
-  - [ ] The SSE event is published only after commit, proven by the rollback test in F3
-  - [ ] p95 claim propagation < 500 ms over 20 runs of `realtime.spec.ts`, number written in README
+  - [x] `claim.race.int.test.ts` passes 20 times in a row locally (`for i in $(seq 20); do pnpm --filter @dishpatch/api test:race || break; done`)
+  - [x] The SSE event is published only after commit, proven by the rollback test in F3
+  - [x] p95 claim propagation < 500 ms over 20 runs of `realtime.spec.ts`, number written in README
 
 ---
 
