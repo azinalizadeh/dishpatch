@@ -46,16 +46,16 @@ test('presence count goes from 1 to 2 when a second context opens the board', as
 }) => {
   const board = await createBoard(page.request, baseURL);
   await openLiveBoard(page, board.eventId);
-  await expect(page.getByRole('status').filter({ hasText: 'Live · 1 here' })).toBeVisible();
+  await expect(page.getByText('Live · 1 here')).toBeVisible();
 
   const guest = await newPerson(browser);
   await joinBoard(guest.page.request, baseURL, board.invitePath, 'Priya');
   await openLiveBoard(guest.page, board.eventId);
 
   // Presence is broadcast at most every 5 s.
-  await expect(page.getByRole('status').filter({ hasText: 'Live · 2 here' })).toBeVisible({
+  await expect(page.getByText('Live · 2 here')).toBeVisible({
     timeout: 8_000,
   });
-  await expect(guest.page.getByRole('status').filter({ hasText: 'Live · 2 here' })).toBeVisible();
+  await expect(guest.page.getByText('Live · 2 here')).toBeVisible();
   await guest.context.close();
 });

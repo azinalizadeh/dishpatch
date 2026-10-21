@@ -16,16 +16,6 @@ interface SlotCardProps {
   onClaim: (slot: SlotView) => void;
 }
 
-const catBorder = {
-  main: 'border-l-cat-main',
-  side: 'border-l-cat-side',
-  salad: 'border-l-cat-salad',
-  dessert: 'border-l-cat-dessert',
-  drinks: 'border-l-cat-drinks',
-} as const;
-
-const singular = (plural: string) => plural.slice(0, -1).toLowerCase();
-
 const openLabel: Record<OpenSlotState, string> = {
   claimable: '+ Claim',
   paused: 'Paused',
@@ -37,14 +27,14 @@ const openLabel: Record<OpenSlotState, string> = {
  * `<button>` that opens the claim dialog, disabled with "Paused"/"Closed" when claims can't happen.
  */
 export function SlotCard({ slot, number, mine, hostId, openState, onClaim }: SlotCardProps) {
-  const label = CATEGORY_LABELS[slot.category].plural;
+  const { plural: label, singular, border } = CATEGORY_LABELS[slot.category];
 
   if (slot.claimedBy && slot.dishName) {
     const by = slot.claimedBy.displayName;
     return (
       <article
         aria-label={`${label} slot ${number}: ${slot.dishName}, brought by ${by}`}
-        className={`slot-sticker relative flex min-h-24 flex-col justify-between gap-s2 rounded-lg border border-l-8 border-border bg-surface px-s4 py-s3 shadow-e2 ${catBorder[slot.category]} ${
+        className={`slot-sticker relative flex min-h-24 flex-col justify-between gap-s2 rounded-lg border border-l-8 border-border bg-surface px-s4 py-s3 shadow-e2 ${border} ${
           mine ? 'outline-2 outline-offset-2 outline-primary' : ''
         }`}
       >
@@ -74,7 +64,7 @@ export function SlotCard({ slot, number, mine, hostId, openState, onClaim }: Slo
       className="flex min-h-24 cursor-pointer flex-col justify-between gap-s2 rounded-lg border-2 border-dashed border-border-ui bg-transparent px-s4 py-s3 text-left text-muted enabled:hover:border-primary enabled:hover:bg-surface enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-55"
     >
       <span className="font-extrabold text-primary">{openLabel[openState]}</span>
-      <span className="text-sm">Open {singular(label)}</span>
+      <span className="text-sm">Open {singular}</span>
     </button>
   );
 }

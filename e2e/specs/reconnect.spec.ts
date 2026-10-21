@@ -20,7 +20,7 @@ test('offline banner shows after dropping the network and missed claims appear a
 
   await context.setOffline(true);
   await expect(page.getByText(/Connection lost\. Reconnecting…/)).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole('status').filter({ hasText: /^Reconnecting…$/ })).toBeVisible();
+  await expect(page.getByText(/^Reconnecting…$/)).toBeVisible();
   await expect(open).toBeDisabled();
   await expect(open).toContainText('Paused');
 
@@ -32,7 +32,7 @@ test('offline banner shows after dropping the network and missed claims appear a
 
   await context.setOffline(false);
   // EventSource retries every 3 s and replays from its Last-Event-ID.
-  await expect(page.getByRole('status').filter({ hasText: /^Live/ })).toBeVisible({
+  await expect(page.getByText(/^Live/)).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByText(/Connection lost/)).toBeHidden();

@@ -149,7 +149,12 @@ export function useBoardStream(eventId: string) {
           // Too far behind to replay: reload the snapshot, then stream from its seq.
           source.close();
           void queryClient.refetchQueries({ queryKey: key }).then(() => {
-            if (!disposed) setEpoch((n) => n + 1);
+            if (disposed) return;
+            // A failed reload would just resync again: wait as for a refused stream.
+            if (queryClient.getQueryState(key)?.status === 'error') {
+              setConnection('reconnecting');
+              reopenAfter(REOPEN_AFTER_MS);
+            } else setEpoch((n) => n + 1);
           });
           return;
         case 'event.deleted':

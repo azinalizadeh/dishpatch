@@ -112,7 +112,7 @@
   }
   .conn-dot.conn-dot-off {
     background: var(--error);
-    box-shadow: 0 0 0 4px rgb(179 38 30 / 0.18);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--error) 18%, transparent);
   }
   .slot-sticker:nth-child(odd) {
     transform: rotate(-0.6deg);

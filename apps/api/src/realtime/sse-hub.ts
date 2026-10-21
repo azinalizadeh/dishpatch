@@ -1,4 +1,4 @@
-import type { BoardEvent } from '@dishpatch/shared';
+import { type BoardEvent, isSequenced } from '@dishpatch/shared';
 import type { Response } from 'express';
 import { tooManyStreams } from '../domain/errors.ts';
 import type { EventBus } from './event-bus.ts';
@@ -39,7 +39,7 @@ interface Connection {
 
 /** One SSE frame. Sequenced events carry `id: seq` so the browser resumes with `Last-Event-ID`. */
 function frame(msg: BoardEvent): string {
-  const id = 'seq' in msg ? `id: ${msg.seq}\n` : '';
+  const id = isSequenced(msg) ? `id: ${msg.seq}\n` : '';
   return `${id}event: ${msg.type}\ndata: ${JSON.stringify(msg)}\n\n`;
 }
 
@@ -110,26 +110,48 @@ export function createSseHub({
     res.flushHeaders();
     res.write('retry: 3000\n\n');
 
-    let lastSeq = req.afterSeq ?? 0;
-    let replaying = true;
-    const buffered: BoardEvent[] = [];
+    // The last seq this client has; undefined = it asked for live events only.
+    let lastSeq = req.afterSeq;
     let closed = false;
 
-    const send = (msg: BoardEvent) => {
+    const write = (msg: BoardEvent) => {
       if (closed) return;
-      if ('seq' in msg) {
-        if (msg.seq <= lastSeq) return; // already sent by the replay
-        lastSeq = msg.seq;
-      }
+      if (isSequenced(msg)) lastSeq = msg.seq;
       res.write(frame(msg));
       if (msg.type === 'event.deleted') conn.close();
     };
 
-    // Subscribe before replaying so nothing published during the replay is lost; it is buffered
-    // and flushed in order afterwards, with anything the replay already covered dropped by seq.
+    /** Everything the client missed after `lastSeq`, from the log; `resync` if it's gone. */
+    const catchUp = async () => {
+      const missed = await log.since(req.eventId, lastSeq ?? 0);
+      if (missed === 'too_old') {
+        // The client must refetch the snapshot and reconnect from its seq.
+        write({ type: 'resync' });
+        conn.close();
+        return;
+      }
+      for (const msg of missed) if (lastSeq === undefined || msg.seq > lastSeq) write(msg);
+    };
+
+    // One delivery at a time, in order: the replay, then each live event. Live events that
+    // arrive during the replay wait their turn and are dropped by seq if the replay sent them.
+    let queue = Promise.resolve();
+    const deliver = (work: () => void | Promise<void>) => {
+      queue = queue.then(work).catch(() => conn.close());
+      return queue;
+    };
+
     const unsubscribe = bus.subscribe(req.eventId, (msg) => {
-      if (replaying) buffered.push(msg);
-      else send(msg);
+      void deliver(async () => {
+        if (closed) return;
+        if (isSequenced(msg) && lastSeq !== undefined) {
+          if (msg.seq <= lastSeq) return; // duplicate, or already replayed
+          // Publishes from two commits can reach the bus out of order: fill the gap from the
+          // log (which already holds this event) instead of skipping ahead.
+          if (msg.seq > lastSeq + 1) return catchUp();
+        }
+        write(msg);
+      });
     });
     const heartbeat = setInterval(() => res.write(': ping\n\n'), heartbeatMs);
 
@@ -155,18 +177,7 @@ export function createSseHub({
     res.write(frame({ type: 'presence', count: ofEvent(req.eventId).length }));
     presenceChanged(req.eventId);
 
-    if (req.afterSeq !== undefined) {
-      const missed = await log.since(req.eventId, req.afterSeq);
-      if (missed === 'too_old') {
-        // The client must refetch the snapshot and reconnect from its seq.
-        res.write(frame({ type: 'resync' }));
-        conn.close();
-        return;
-      }
-      for (const msg of missed) send(msg);
-    }
-    replaying = false;
-    for (const msg of buffered.splice(0)) send(msg);
+    if (req.afterSeq !== undefined) await deliver(catchUp);
   }
 
   return { open, count: (eventId) => ofEvent(eventId).length };

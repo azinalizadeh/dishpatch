@@ -60,6 +60,28 @@ describe('SSE replay', () => {
     expect(frames.filter((x) => x.id).map((x) => x.id)).toEqual(['2', '3']);
   });
 
+  it('fills a gap from the log when live events arrive out of order', async () => {
+    const board = await createBoard(db);
+    await lockToggles(board.eventId, 1);
+    const stream = await connect(`/api/events/${board.eventId}/stream?after=1`, {
+      cookie: board.sessionToken,
+    });
+    await stream.until((f) => f.some((x) => x.event === 'presence'));
+
+    // Two commits whose publishes reach the bus as 3, then 2.
+    const quiet = createInProcessEventBus();
+    for (const locked of [true, false]) {
+      await recordAndPublish(db, quiet, clock, async (_tx, record) => {
+        await record(board.eventId, { type: 'event.updated', locked });
+      });
+    }
+    bus.publish(board.eventId, { type: 'event.updated', seq: 3, locked: false });
+    bus.publish(board.eventId, { type: 'event.updated', seq: 2, locked: true });
+
+    const frames = await stream.until((f) => f.some((x) => x.id === '3'));
+    expect(frames.filter((x) => x.id).map((x) => x.id)).toEqual(['2', '3']);
+  });
+
   it('sends resync when Last-Event-ID is older than retention', async () => {
     const board = await createBoard(db);
     await lockToggles(board.eventId, 4);

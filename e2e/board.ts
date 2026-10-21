@@ -57,7 +57,7 @@ export async function newPerson(
 /** The board page, once its stream is live. */
 export async function openLiveBoard(page: Page, eventId: string) {
   await page.goto(`/events/${eventId}`);
-  await expect(page.getByRole('status').filter({ hasText: /^Live/ })).toBeVisible();
+  await expect(page.getByText(/^Live/)).toBeVisible();
 }
 
 export const guestList = (page: Page) => page.getByRole('list', { name: "Who's coming" });

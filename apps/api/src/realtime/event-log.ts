@@ -11,7 +11,10 @@ type Tx = Parameters<Parameters<Db['orm']['transaction']>[0]>[0];
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 export type UnsequencedChange = DistributiveOmit<SequencedBoardEvent, 'seq'>;
 
-export type Record = (eventId: string, change: UnsequencedChange) => Promise<SequencedBoardEvent>;
+export type RecordChange = (
+  eventId: string,
+  change: UnsequencedChange,
+) => Promise<SequencedBoardEvent>;
 
 /**
  * Runs one board mutation (04-architecture.md › Write path). Inside `work`, `record` bumps
@@ -23,12 +26,12 @@ export async function recordAndPublish<T>(
   db: Db,
   bus: EventBus,
   clock: Clock,
-  work: (tx: Tx, record: Record) => Promise<T>,
+  work: (tx: Tx, record: RecordChange) => Promise<T>,
 ): Promise<T> {
   const outbox: { eventId: string; msg: SequencedBoardEvent }[] = [];
 
   const result = await db.orm.transaction(async (tx) => {
-    const record: Record = async (eventId, change) => {
+    const record: RecordChange = async (eventId, change) => {
       const [row] = await tx
         .update(events)
         .set({ seq: sql`${events.seq} + 1` })

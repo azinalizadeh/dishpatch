@@ -97,7 +97,7 @@ test.describe('accessibility', () => {
         const { eventId } = (await res.json()) as { eventId: string };
 
         await page.goto(`/events/${eventId}`);
-        await expect(page.getByRole('status').filter({ hasText: /^Live/ })).toBeVisible();
+        await expect(page.getByText(/^Live/)).toBeVisible();
         await expectNoSeriousViolations(page);
 
         await context.setOffline(true);
@@ -121,7 +121,7 @@ test.describe('accessibility', () => {
     });
     const { eventId } = (await res.json()) as { eventId: string };
     await page.goto(`/events/${eventId}`);
-    await expect(page.getByRole('status').filter({ hasText: /^Live/ })).toBeVisible();
+    await expect(page.getByText(/^Live/)).toBeVisible();
     const first = page.getByRole('button', { name: 'Claim open Mains slot 1' });
     await first.focus();
     await page.keyboard.press('Tab');

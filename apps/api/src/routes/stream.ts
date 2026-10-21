@@ -16,7 +16,8 @@ const SEQ = /^\d{1,15}$/;
 /**
  * Where the client is: the `Last-Event-ID` header EventSource sends on reconnect, or `?after=`
  * (the snapshot's seq) on the first connect, since EventSource can't set headers itself.
- * Anything malformed counts as "from the very start", which the log answers with `resync`.
+ * Anything malformed counts as "from the very start": a full replay, or `resync` if the log
+ * no longer reaches back that far.
  */
 function afterSeqOf(header: string | undefined, query: unknown): number | undefined {
   const raw = header ?? (typeof query === 'string' ? query : undefined);

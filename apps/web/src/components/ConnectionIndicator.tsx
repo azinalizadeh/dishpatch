@@ -8,7 +8,8 @@ const dotState: Record<Exclude<Connection, 'notfound'>, string> = {
 
 /**
  * Top-bar status (03-design.md › board): "Live · 6 here" with a green dot, or a red
- * "Reconnecting…". A polite status region, so changes are read out without stealing focus.
+ * "Reconnecting…". Not a live region: the board has one polite region (throttled) and the
+ * offline banner is a status, so presence ticks don't add screen-reader chatter.
  */
 export function ConnectionIndicator({
   connection,
@@ -22,7 +23,7 @@ export function ConnectionIndicator({
   if (connection === 'reconnecting') label = 'Reconnecting…';
   else if (connection === 'live') label = presence === null ? 'Live' : `Live · ${presence} here`;
   return (
-    <p role="status" className="inline-flex items-center gap-s2 text-sm font-bold text-muted">
+    <p className="inline-flex items-center gap-s2 text-sm font-bold text-muted">
       <i aria-hidden="true" className={`conn-dot ${dotState[connection]}`} />
       <span>{label}</span>
     </p>

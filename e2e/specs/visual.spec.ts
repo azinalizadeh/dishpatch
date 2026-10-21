@@ -76,7 +76,7 @@ for (const { suffix, options } of VARIANTS) {
     await shot(page, `share${suffix}`);
     if (!suffix.endsWith('-dark')) {
       await page.getByRole('button', { name: 'Copy invite link' }).click();
-      await page.getByRole('status').filter({ hasText: 'Invite link copied' }).waitFor();
+      await page.getByText('Invite link copied').waitFor();
       await page.getByRole('button', { name: 'Copy invite link' }).blur();
       await shot(page, `share-copied${suffix}`);
     }
