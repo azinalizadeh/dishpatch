@@ -7,6 +7,16 @@ export {
   SequencedBoardEvent,
 } from './board-events.ts';
 export { CATEGORIES, type Category, LIMITS } from './categories.ts';
+export {
+  type CoverageChange,
+  type CoverageHint,
+  type CoverageStatus,
+  computeCoverage,
+  effectiveTags,
+  type NeedCoverage,
+  previewCoverage,
+  topHint,
+} from './coverage.ts';
 export { DIETARY, DIETARY_LABELS, type Dietary } from './dietary.ts';
 export { ERROR_CODES, type ErrorCode } from './errors.ts';
 export {
