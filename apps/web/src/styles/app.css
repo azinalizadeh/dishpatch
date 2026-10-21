@@ -24,6 +24,8 @@
   --color-ok-bg: var(--ok-bg);
   --color-ok-ink: var(--ok-ink);
   --color-focus: var(--focus);
+  /* The dialog scrim from design/mockup.html › .scrim (same in light and dark). */
+  --color-scrim: rgb(10 16 14 / 0.55);
   --color-cat-main: var(--cat-main);
   --color-on-cat-main: var(--on-cat-main);
   --color-cat-side: var(--cat-side);
@@ -119,5 +121,21 @@
   }
   .slot-sticker:nth-child(even) {
     transform: rotate(0.5deg);
+  }
+  /* design/mockup.html › .slot.just: a new claim pops in. */
+  .slot-sticker.slot-pop {
+    animation: slot-pop var(--dur-slow) var(--ease);
+  }
+}
+
+@keyframes slot-pop {
+  0% {
+    transform: scale(0.92);
+  }
+  60% {
+    transform: scale(1.03) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1);
   }
 }

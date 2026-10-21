@@ -63,7 +63,12 @@ describe('applyBoardEvent', () => {
 
   it('slot.released clears claimant and dish', () => {
     const state = board({ slots: [claimedA, openSlot(SLOT_B, 1)] });
-    const next = applyBoardEvent(state, { type: 'slot.released', seq: 4, slotId: SLOT_A });
+    const next = applyBoardEvent(state, {
+      type: 'slot.released',
+      seq: 4,
+      slotId: SLOT_A,
+      actorRole: 'guest',
+    });
     expect(next.slots[0]).toEqual(openSlot(SLOT_A, 0));
     expect(next.seq).toBe(4);
   });

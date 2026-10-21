@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ApiErrorSchema,
   CATEGORIES,
+  ClaimInput,
   CreateEventInput,
   DIETARY,
   DietarySchema,
@@ -171,5 +172,30 @@ describe('JoinInput', () => {
     expect(JoinInput.safeParse({ displayName: '🥧'.repeat(41), dietaryNeeds: [] }).success).toBe(
       false,
     );
+  });
+});
+
+describe('ClaimInput', () => {
+  it('ClaimInput rejects empty and 61-char dish names', () => {
+    const empty = ClaimInput.safeParse({ dishName: '   ', dishTags: [] });
+    expect(empty.success).toBe(false);
+    expect(empty.error?.issues[0]?.message).toBe("Add the dish you're bringing.");
+
+    const long = ClaimInput.safeParse({ dishName: 'a'.repeat(61), dishTags: [] });
+    expect(long.success).toBe(false);
+    expect(long.error?.issues[0]?.message).toBe('Keep the dish under 60 characters.');
+
+    expect(ClaimInput.safeParse({ dishName: '🥧'.repeat(60), dishTags: [] }).success).toBe(true);
+  });
+
+  it('trims the dish, dedupes tags and rejects unknown tags', () => {
+    expect(
+      ClaimInput.parse({ dishName: '  Mushroom pie ', dishTags: ['vegan', 'vegan', 'nut_free'] }),
+    ).toEqual({ dishName: 'Mushroom pie', dishTags: ['vegan', 'nut_free'] });
+    expect(ClaimInput.safeParse({ dishName: 'Pie', dishTags: ['keto'] }).success).toBe(false);
+    expect(
+      ClaimInput.safeParse({ dishName: 'Pie', dishTags: Array(7).fill('vegan') }).success,
+    ).toBe(false);
+    expect(ClaimInput.safeParse({ dishName: 'Pie', dishTags: [] }).success).toBe(false);
   });
 });

@@ -72,4 +72,17 @@ describe('GET /api/events/:eventId', () => {
     for (let i = 0; i < 30; i++) expect((await probe()).status).toBe(404);
     expect((await probe()).status).toBe(429);
   });
+
+  it('concurrent members behind one IP are not counted as failed lookups', async () => {
+    const board = await createBoard(db);
+    const { app } = intApp(db, { clock });
+    const get = () =>
+      request(app)
+        .get(`/api/events/${board.eventId}`)
+        .set('Cookie', `dp_sess=${board.sessionToken}`);
+
+    const results = await Promise.all(Array.from({ length: 40 }, get));
+
+    expect(results.every((r) => r.status === 200)).toBe(true);
+  });
 });

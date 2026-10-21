@@ -10,4 +10,6 @@ export const LIMITS = {
   slotsPerCategoryMax: 12,
   slotsTotalMax: 40,
   participantsMax: 100,
+  dishMax: 60,
+  claimsPerParticipantMax: 3,
 } as const;

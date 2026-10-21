@@ -1,7 +1,21 @@
-import { CATEGORIES, DIETARY_LABELS, type SlotView, type Snapshot } from '@dishpatch/shared';
-import { useCallback, useEffect } from 'react';
+import {
+  CATEGORIES,
+  DIETARY_LABELS,
+  type SequencedBoardEvent,
+  type SlotView,
+  type Snapshot,
+} from '@dishpatch/shared';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
+import { ApiRequestError, NetworkError } from '../api/client.ts';
+import {
+  BOARD_CHANGED,
+  NETWORK_ERROR_COPY,
+  usePendingSlotIds,
+  useReleaseSlot,
+} from '../api/queries.ts';
 import { type Connection, useBoardStream } from '../api/use-board-stream.ts';
+import { CATEGORY_LABELS } from '../categories.ts';
 import { useShell } from '../components/AppShell.tsx';
 import { Avatar } from '../components/Avatar.tsx';
 import { Banner } from '../components/Banner.tsx';
@@ -11,7 +25,9 @@ import { ConnectionIndicator } from '../components/ConnectionIndicator.tsx';
 import { Skeleton } from '../components/Skeleton.tsx';
 import type { OpenSlotState } from '../components/SlotCard.tsx';
 import { Tag } from '../components/Tag.tsx';
+import { Toast, type ToastAction, type ToastRole } from '../components/Toast.tsx';
 import { formatWhen } from '../format.ts';
+import { ClaimDialog } from './ClaimDialog.tsx';
 import { NotFoundScreen } from './NotFoundScreen.tsx';
 
 const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
@@ -19,13 +35,35 @@ const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
 /**
  * The live board (F3.6, 03-design.md › board): slot groups and "Who's coming", kept current by
  * the stream. States: loading, empty, offline (claims paused), locked (claims closed), error.
- * Coverage (sidebar card and mobile banner) and claiming arrive with F5 and F4.
+ * Claims (F4) open the claim dialog at `?claim=<slotId>`; coverage arrives with F5.
  */
 export function BoardScreen() {
   const { eventId = '' } = useParams();
-  const { query, board, connection, presence, announcement } = useBoardStream(eventId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const claimSlotId = searchParams.get('claim');
+  const [toast, setToast] = useState<{
+    message: string;
+    role: ToastRole;
+    action?: ToastAction | undefined;
+  } | null>(null);
+  const showToast = useCallback(
+    (message: string, role: ToastRole = 'status', action?: ToastAction) =>
+      setToast({ message, role, action }),
+    [],
+  );
+  const dismissToast = useCallback(() => setToast(null), []);
+
+  const onEvent = useCallback(
+    (msg: SequencedBoardEvent, before: Snapshot) => {
+      const conflict = conflictToast(msg, before, claimSlotId);
+      if (conflict) showToast(conflict, 'alert');
+    },
+    [claimSlotId, showToast],
+  );
+  const { query, board, connection, presence, announcement } = useBoardStream(eventId, onEvent);
   const { setHeaderEnd } = useShell();
-  const [, setSearchParams] = useSearchParams();
+  const { mutate: release } = useReleaseSlot(eventId);
+  const pendingSlotIds = usePendingSlotIds(eventId);
 
   useEffect(() => {
     setHeaderEnd(<ConnectionIndicator connection={connection} presence={presence} />);
@@ -37,12 +75,53 @@ export function BoardScreen() {
     (slot: SlotView) => setSearchParams({ claim: slot.id }),
     [setSearchParams],
   );
+  const closeClaim = useCallback(() => setSearchParams({}, { replace: true }), [setSearchParams]);
+  const releaseSlot = useCallback(
+    function releaseWithRetry(slot: SlotView) {
+      release(
+        { slot },
+        {
+          onError: (err) => {
+            if (err instanceof NetworkError) {
+              showToast(NETWORK_ERROR_COPY, 'alert', {
+                label: 'Try again',
+                onClick: () => releaseWithRetry(slot),
+              });
+            } else if (err instanceof ApiRequestError && err.code === 'NOT_OWNER') {
+              showToast("That isn't your claim.", 'alert');
+            } else if (!(err instanceof ApiRequestError) || !BOARD_CHANGED.has(err.code)) {
+              showToast(err.message, 'alert');
+            }
+          },
+        },
+      );
+    },
+    [release, showToast],
+  );
 
   if (connection === 'notfound') return <NotFoundScreen />;
 
   let content = <BoardSkeleton />;
   if (board) {
-    content = <LiveBoard board={board} connection={connection} onClaim={openClaim} />;
+    content = (
+      <>
+        <LiveBoard
+          board={board}
+          connection={connection}
+          onClaim={openClaim}
+          onRelease={releaseSlot}
+          pendingSlotIds={pendingSlotIds}
+        />
+        {claimSlotId ? (
+          <ClaimDialog
+            board={board}
+            slotId={claimSlotId}
+            onClose={closeClaim}
+            onToast={showToast}
+          />
+        ) : null}
+      </>
+    );
   } else if (query.isError) {
     content = (
       <Banner
@@ -67,18 +146,57 @@ export function BoardScreen() {
         {announcement}
       </p>
       {content}
+      <Toast
+        message={toast?.message ?? null}
+        role={toast?.role}
+        action={toast?.action}
+        onDismiss={dismissToast}
+      />
     </section>
   );
+}
+
+/**
+ * Toast copy for a change that takes something away from the viewer (03-design.md › board ›
+ * conflict): the host removing their claim, or someone taking the last open slot of a category.
+ * The open claim dialog explains its own slot, so that one gets no toast.
+ */
+function conflictToast(
+  msg: SequencedBoardEvent,
+  before: Snapshot,
+  dialogSlotId: string | null,
+): string | null {
+  const meId = before.me.participantId;
+  if (msg.type === 'slot.released' && msg.actorRole === 'host' && before.me.role !== 'host') {
+    const slot = before.slots.find((s) => s.id === msg.slotId);
+    if (slot?.claimedBy?.id !== meId) return null;
+    const host = before.participants.find((p) => p.role === 'host')?.displayName ?? 'The host';
+    return `${host} removed your claim on '${slot.dishName}'.`;
+  }
+  if (msg.type === 'slot.claimed' && msg.slot.claimedBy && msg.slot.claimedBy.id !== meId) {
+    if (msg.slot.id === dialogSlotId) return null;
+    const stillOpen = before.slots.filter(
+      (s) => s.category === msg.slot.category && !s.claimedBy && s.id !== msg.slot.id,
+    );
+    if (stillOpen.length > 0) return null;
+    const { singular } = CATEGORY_LABELS[msg.slot.category];
+    return `${msg.slot.claimedBy.displayName} just took the last ${singular} slot.`;
+  }
+  return null;
 }
 
 function LiveBoard({
   board,
   connection,
   onClaim,
+  onRelease,
+  pendingSlotIds,
 }: {
   board: Snapshot;
   connection: Connection;
   onClaim: (slot: SlotView) => void;
+  onRelease: (slot: SlotView) => void;
+  pendingSlotIds: ReadonlySet<string>;
 }) {
   const { event, slots, participants, me } = board;
   const host = participants.find((p) => p.role === 'host');
@@ -152,7 +270,11 @@ function LiveBoard({
                 meId={me.participantId}
                 hostId={host?.id}
                 openState={openState}
+                releasable={!offline && !event.locked}
+                isHost={me.role === 'host'}
                 onClaim={onClaim}
+                onRelease={onRelease}
+                pendingSlotIds={pendingSlotIds}
               />
             );
           })}

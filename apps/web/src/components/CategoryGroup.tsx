@@ -9,7 +9,12 @@ interface CategoryGroupProps {
   meId: string;
   hostId: string | undefined;
   openState: OpenSlotState;
+  /** Releases are allowed (not offline, not locked); who may release is decided per card. */
+  releasable: boolean;
+  isHost: boolean;
   onClaim: (slot: SlotView) => void;
+  onRelease: (slot: SlotView) => void;
+  pendingSlotIds: ReadonlySet<string>;
 }
 
 const slotGrid = 'grid grid-cols-2 gap-s3 tablet:grid-cols-3';
@@ -21,7 +26,11 @@ export function CategoryGroup({
   meId,
   hostId,
   openState,
+  releasable,
+  isHost,
   onClaim,
+  onRelease,
+  pendingSlotIds,
 }: CategoryGroupProps) {
   const { plural, dot } = CATEGORY_LABELS[category];
   const claimed = slots.filter((s) => s.claimedBy).length;
@@ -35,17 +44,23 @@ export function CategoryGroup({
         </span>
       </h2>
       <div className={slotGrid}>
-        {slots.map((slot, i) => (
-          <SlotCard
-            key={slot.id}
-            slot={slot}
-            number={i + 1}
-            mine={slot.claimedBy?.id === meId}
-            hostId={hostId}
-            openState={openState}
-            onClaim={onClaim}
-          />
-        ))}
+        {slots.map((slot, i) => {
+          const mine = slot.claimedBy?.id === meId;
+          return (
+            <SlotCard
+              key={slot.id}
+              slot={slot}
+              number={i + 1}
+              mine={mine}
+              hostId={hostId}
+              openState={openState}
+              canRelease={releasable && (mine || isHost)}
+              pending={pendingSlotIds.has(slot.id)}
+              onClaim={onClaim}
+              onRelease={onRelease}
+            />
+          );
+        })}
       </div>
     </section>
   );

@@ -87,8 +87,14 @@ export function useThrottledAnnouncer(everyMs = ANNOUNCE_EVERY_MS) {
  * The live board (F3.5): the snapshot from TanStack Query, kept current by an EventSource whose
  * events are applied with the shared `applyBoardEvent` (anything with `seq <= current` is ignored).
  */
-export function useBoardStream(eventId: string) {
+export function useBoardStream(
+  eventId: string,
+  /** Called after each sequenced event is applied, with the board as it was before. */
+  onEvent?: (msg: SequencedBoardEvent, before: Snapshot) => void,
+) {
   const queryClient = useQueryClient();
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
   const query = useBoardSnapshot(eventId);
   const [connection, setConnection] = useState<Connection>('connecting');
   const [presence, setPresence] = useState<number | null>(null);
@@ -174,6 +180,7 @@ export function useBoardStream(eventId: string) {
           queryClient.setQueryData(key, after);
           const said = describeChange(msg, before);
           if (said) announce(said);
+          onEventRef.current?.(msg, before);
         }
       }
     };

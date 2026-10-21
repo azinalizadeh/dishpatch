@@ -1,7 +1,6 @@
-import { TokenParam } from '@dishpatch/shared';
+import { IdParam, TokenParam } from '@dishpatch/shared';
 import { and, eq, gt } from 'drizzle-orm';
 import type { RequestHandler, Response } from 'express';
-import { z } from 'zod';
 import type { Clock } from '../clock.ts';
 import type { Db } from '../db/client.ts';
 import { participants, sessions } from '../db/schema.ts';
@@ -17,8 +16,6 @@ export interface Actor {
   participantId: string;
   role: 'host' | 'guest';
 }
-
-const EventId = z.uuid();
 
 /** Session cookie flags from 07-security.md › Authentication & sessions. */
 export function setSessionCookie(
@@ -43,7 +40,7 @@ export async function resolveActor(
   sessionToken: string | undefined,
   eventId: string,
 ): Promise<Actor | null> {
-  if (!TokenParam.safeParse(sessionToken).success || !EventId.safeParse(eventId).success) {
+  if (!TokenParam.safeParse(sessionToken).success || !IdParam.safeParse(eventId).success) {
     return null;
   }
   const [row] = await db.orm

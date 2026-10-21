@@ -18,6 +18,7 @@ import { eventsRouter } from './routes/events.ts';
 import { healthRouter } from './routes/health.ts';
 import { hostLinksRouter } from './routes/host-links.ts';
 import { invitesRouter } from './routes/invites.ts';
+import { slotsRouter } from './routes/slots.ts';
 import { streamRouter } from './routes/stream.ts';
 import { testOnlyRouter } from './routes/test-only.ts';
 
@@ -64,6 +65,7 @@ export function buildApp(deps: AppDeps): Express {
   api.use(healthRouter(db));
   api.use(eventsRouter({ db, clock, env, limits }));
   api.use(streamRouter({ db, clock, hub }));
+  api.use(slotsRouter({ db, clock, bus, limits }));
   api.use(invitesRouter({ db, clock, env, bus, limits }));
   api.use(hostLinksRouter({ db, clock, env, limits }));
   if (env.NODE_ENV === 'test') api.use(testOnlyRouter());

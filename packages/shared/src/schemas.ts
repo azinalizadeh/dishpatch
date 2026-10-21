@@ -29,6 +29,7 @@ export const ApiErrorSchema = z.object({
     requestId: z.string().min(1),
     fields: z.record(z.string(), z.string()).optional(),
     retryAfterSeconds: z.number().optional(),
+    claimedBy: z.string().optional(),
   }),
 });
 
@@ -126,6 +127,20 @@ export const JoinResponse = z.object({ eventId: z.uuid(), participantId: z.uuid(
 
 export type JoinResponse = z.infer<typeof JoinResponse>;
 
+export const ClaimInput = z.object({
+  dishName: text(LIMITS.dishMax, {
+    empty: "Add the dish you're bringing.",
+    tooLong: `Keep the dish under ${LIMITS.dishMax} characters.`,
+  }),
+  // Tags are a set: repeats are dropped rather than rejected (but capped, 07-security.md › D3).
+  dishTags: z
+    .array(DietarySchema)
+    .max(DIETARY.length, 'Pick each tag once.')
+    .transform((tags) => [...new Set(tags)]),
+});
+
+export type ClaimInput = z.output<typeof ClaimInput>;
+
 export const ParticipantView = z.object({
   id: z.uuid(),
   displayName: z.string(),
@@ -162,6 +177,14 @@ export const Snapshot = z.object({
 });
 
 export type Snapshot = z.infer<typeof Snapshot>;
+
+/** `POST`/`DELETE /api/events/:eventId/slots/:slotId/claim` (API #7–#8). */
+export const ClaimResponse = z.object({ slot: SlotView, seq: z.number().int().min(1) });
+
+export type ClaimResponse = z.infer<typeof ClaimResponse>;
+
+/** Ids in API paths (board, slot): anything else is answered like an unknown id. */
+export const IdParam = z.uuid();
 
 /** Capability tokens: 32 random bytes as base64url (07-security.md › Authentication). */
 export const TokenParam = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
