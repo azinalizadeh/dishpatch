@@ -12,7 +12,9 @@ function limiter(
   windowMs: number,
   limit: number,
   message: string,
-  extra: Partial<Pick<Options, 'keyGenerator' | 'skipSuccessfulRequests'>> = {},
+  extra: Partial<
+    Pick<Options, 'keyGenerator' | 'requestWasSuccessful' | 'skipSuccessfulRequests'>
+  > = {},
 ) {
   return rateLimit({
     windowMs,
@@ -31,9 +33,15 @@ function limiter(
 const perIp = (windowMs: number, limit: number, message: string) =>
   limiter(windowMs, limit, message);
 
-/** Counts only failed requests per IP: caps session/board-id probing before any DB lookup is cheap. */
-const failuresPerIp = (windowMs: number, limit: number, message: string) =>
-  limiter(windowMs, limit, message, { skipSuccessfulRequests: true });
+/**
+ * Counts only 404s per IP, i.e. board lookups without a valid session: caps board-id and session
+ * probing. Members' own 429s and 5xx don't count, so guests sharing one IP aren't locked out.
+ */
+const notFoundsPerIp = (windowMs: number, limit: number, message: string) =>
+  limiter(windowMs, limit, message, {
+    skipSuccessfulRequests: true,
+    requestWasSuccessful: (_req, res) => res.statusCode !== 404,
+  });
 
 /** Keyed by the session cookie's hash; mount after `requireActor`, so only real sessions count. */
 const perSession = (windowMs: number, limit: number, message: string) =>
@@ -55,7 +63,7 @@ export function createRateLimits() {
     invitePreview: perIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
     join: perIp(MINUTE, 10, 'Too many tries. Wait a minute and try again.'),
     snapshot: perSession(MINUTE, 120, 'Too many requests. Wait a minute and try again.'),
-    boardMisses: failuresPerIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
+    boardMisses: notFoundsPerIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
   };
 }
 

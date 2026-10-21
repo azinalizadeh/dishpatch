@@ -123,13 +123,17 @@ export function CreateScreen() {
     try {
       const created = await postJson('/api/events', CreateEventResponse, parsed.data);
       rememberCreatedBoard(parsed.data, created);
-      // The host already has a session: opening their own invite link here goes to the board
-      // instead of joining a second time as a guest.
-      await rememberJoin(
-        new URL(created.inviteUrl).pathname.split('/').pop() ?? '',
-        created.eventId,
-      );
       navigate(`/events/${created.eventId}/share`);
+      // The host already has a session: opening their own invite link here goes to the board
+      // instead of joining a second time as a guest. Best-effort, after the board exists.
+      try {
+        void rememberJoin(
+          new URL(created.inviteUrl).pathname.split('/').pop() ?? '',
+          created.eventId,
+        );
+      } catch {
+        // An unparseable inviteUrl only costs the shortcut.
+      }
     } catch (err) {
       setSubmitting(false);
       if (err instanceof NetworkError) {

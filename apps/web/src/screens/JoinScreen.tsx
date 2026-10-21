@@ -19,7 +19,7 @@ import { Skeleton } from '../components/Skeleton.tsx';
 import { TextField } from '../components/TextField.tsx';
 import { formatWhen } from '../format.ts';
 
-type Problem = 'offline' | 'rate-limited' | 'full' | 'cookies' | 'server';
+type Problem = 'offline' | 'rate-limited' | 'full' | 'cookies' | 'invalid' | 'server';
 
 type Load =
   | { kind: 'loading' }
@@ -32,6 +32,7 @@ const PROBLEM_COPY: Record<Problem, string> = {
   'rate-limited': 'Too many tries. Wait a minute and try again.',
   full: `This board is full — ${LIMITS.participantsMax} people have already joined.`,
   cookies: 'Dishpatch needs cookies to remember you on this board.',
+  invalid: "Some of your choices didn't go through. Please reload the page and try again.",
   server: 'Something broke on our side. Please try again.',
 };
 
@@ -39,6 +40,7 @@ function problemFrom(err: unknown): Problem {
   if (err instanceof NetworkError) return 'offline';
   if (err instanceof ApiRequestError && err.code === 'RATE_LIMITED') return 'rate-limited';
   if (err instanceof ApiRequestError && err.code === 'EVENT_FULL') return 'full';
+  if (err instanceof ApiRequestError && err.code === 'VALIDATION') return 'invalid';
   return 'server';
 }
 

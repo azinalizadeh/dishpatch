@@ -127,7 +127,7 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - A10 → publish strictly after commit (`event-log.int.test.ts › nothing is published when the transaction rolls back`).
 - **Definition of Done**
   - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
   - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
   - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
   - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
@@ -171,7 +171,7 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - Abuse: per-session 30/min limit on claim/release; ≤ 3 claims per participant.
 - **Definition of Done**
   - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
   - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
   - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
   - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
@@ -212,7 +212,7 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - Privacy copy on `coverage` and `join` explains what's shared.
 - **Definition of Done**
   - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
   - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
   - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
   - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
@@ -252,7 +252,7 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - Privacy → hard delete + cleanup job (tests above); delete requires typed confirmation to prevent accidental data loss.
 - **Definition of Done**
   - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
   - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
   - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
   - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA

@@ -206,7 +206,8 @@ describe('JoinScreen', () => {
     fireEvent.change(await screen.findByLabelText('Your name'), { target: { value: 'Priya' } });
     fireEvent.click(screen.getByRole('button', { name: 'Join the board' }));
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Something broke');
+    expect((await screen.findByRole('alert')).textContent).toContain("didn't go through");
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
     expect(screen.getByLabelText('Your name').getAttribute('aria-invalid')).toBeNull();
   });
 });
