@@ -48,9 +48,9 @@ describe('app factory (smoke)', () => {
     const got: string[] = [];
     const off = bus.subscribe('a', (m) => got.push(m.type));
     bus.subscribe('b', (m) => got.push(`b:${m.type}`));
-    bus.publish('a', { type: 'one' });
+    bus.publish('a', { type: 'resync' });
     off();
-    bus.publish('a', { type: 'two' });
-    expect(got).toEqual(['one']);
+    bus.publish('a', { type: 'presence', count: 1 });
+    expect(got).toEqual(['resync']);
   });
 });
