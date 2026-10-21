@@ -171,10 +171,14 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
+          {/* Distinct keys: a click aimed at "Claim slot" must never land on "Back to board"
+              when the stream turns the dialog into its error state at the same moment. */}
           {error ? (
-            <Button onClick={onClose}>Back to board</Button>
+            <Button key="back" onClick={onClose}>
+              Back to board
+            </Button>
           ) : (
-            <Button type="submit" loading={submitting} loadingLabel="Claiming…">
+            <Button key="claim" type="submit" loading={submitting} loadingLabel="Claiming…">
               Claim slot
             </Button>
           )}

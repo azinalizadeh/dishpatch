@@ -30,10 +30,16 @@ test('two guests submit the same slot, one sees their card, the other sees "just
     await guest.page.getByRole('dialog').getByLabel('Dish').fill(`${names[i]}'s pie`);
   }
 
-  // Both press "Claim slot" at the same moment.
+  // Both press "Claim slot" at the same moment. If one request wins fast enough, the stream can
+  // turn the other dialog into its error state before that click lands (02-user-flows.md › D15):
+  // then there is no "Claim slot" left to press, which is a loss too.
   await Promise.all(
     guests.map(({ page: p }) =>
-      p.getByRole('dialog').getByRole('button', { name: 'Claim slot' }).click(),
+      p
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Claim slot' })
+        .click({ timeout: 2_000 })
+        .catch(() => undefined),
     ),
   );
   const outcomes = await Promise.all(guests.map(({ page: p }) => outcome(p)));
