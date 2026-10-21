@@ -44,3 +44,21 @@ export const tooManyStreams = () =>
     'TOO_MANY_STREAMS',
     'This board is open in too many tabs. Close one and try again.',
   );
+
+/** Copy from 01-product.md › US-08; `claimedBy` lets the dialog name the winner. */
+export const slotTaken = (claimedBy: string) =>
+  new DomainError(409, 'SLOT_TAKEN', `${claimedBy} just claimed this slot.`, { claimedBy });
+
+export const claimLimit = (max: number) =>
+  new DomainError(
+    409,
+    'CLAIM_LIMIT',
+    `You're already bringing ${max} dishes — release one to claim another.`,
+  );
+
+export const boardLocked = () =>
+  new DomainError(423, 'BOARD_LOCKED', 'The host has locked the board, so claims are closed.');
+
+export const notOwner = () => new DomainError(403, 'NOT_OWNER', "That isn't your claim.");
+
+export const notClaimed = () => new DomainError(409, 'NOT_CLAIMED', 'That slot is already open.');
