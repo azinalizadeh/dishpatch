@@ -12,6 +12,9 @@ export {
   InvitePreview,
   JoinInput,
   JoinResponse,
+  ParticipantView,
   SlotCountInput,
+  SlotView,
+  Snapshot,
   TokenParam,
 } from './schemas.ts';

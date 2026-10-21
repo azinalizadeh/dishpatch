@@ -126,5 +126,42 @@ export const JoinResponse = z.object({ eventId: z.uuid(), participantId: z.uuid(
 
 export type JoinResponse = z.infer<typeof JoinResponse>;
 
+export const ParticipantView = z.object({
+  id: z.uuid(),
+  displayName: z.string(),
+  dietaryNeeds: z.array(DietarySchema),
+  role: z.enum(['host', 'guest']),
+});
+
+export type ParticipantView = z.infer<typeof ParticipantView>;
+
+export const SlotView = z.object({
+  id: z.uuid(),
+  category: CategorySchema,
+  position: z.number().int(),
+  claimedBy: z.object({ id: z.uuid(), displayName: z.string() }).nullable(),
+  dishName: z.string().nullable(),
+  dishTags: z.array(DietarySchema),
+});
+
+export type SlotView = z.infer<typeof SlotView>;
+
+/** `GET /api/events/:eventId` for a member of the board. `coverage` joins it with F5. */
+export const Snapshot = z.object({
+  event: z.object({
+    id: z.uuid(),
+    title: z.string(),
+    startsAt: z.iso.datetime({ offset: true }),
+    location: z.string().nullable(),
+    locked: z.boolean(),
+  }),
+  slots: z.array(SlotView),
+  participants: z.array(ParticipantView),
+  me: z.object({ participantId: z.uuid(), role: z.enum(['host', 'guest']) }),
+  seq: z.number().int().min(0),
+});
+
+export type Snapshot = z.infer<typeof Snapshot>;
+
 /** Capability tokens: 32 random bytes as base64url (07-security.md › Authentication). */
 export const TokenParam = z.string().regex(/^[A-Za-z0-9_-]{43}$/);

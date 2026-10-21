@@ -27,6 +27,8 @@ export function createRateLimits() {
   return {
     createEvent: perIp(HOUR, 5, "You've made a lot of boards — try again in a bit."),
     hostLink: perIp(MINUTE, 10, 'Too many attempts. Try again in a minute.'),
+    invitePreview: perIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
+    join: perIp(MINUTE, 10, 'Too many tries. Wait a minute and try again.'),
   };
 }
 

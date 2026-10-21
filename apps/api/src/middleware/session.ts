@@ -1,10 +1,11 @@
 import { TokenParam } from '@dishpatch/shared';
 import { and, eq, gt } from 'drizzle-orm';
-import type { Response } from 'express';
+import type { RequestHandler, Response } from 'express';
 import { z } from 'zod';
 import type { Clock } from '../clock.ts';
 import type { Db } from '../db/client.ts';
 import { participants, sessions } from '../db/schema.ts';
+import { notFound } from '../domain/errors.ts';
 import { hashToken } from '../domain/tokens.ts';
 import type { Env } from '../env.ts';
 
@@ -58,4 +59,27 @@ export async function resolveActor(
     )
     .limit(1);
   return row ? { eventId, participantId: row.participantId, role: row.role } : null;
+}
+
+/**
+ * Guards every `/api/events/:eventId*` route: puts the Actor in `res.locals.actor`, or answers
+ * 404 NOT_FOUND (never 403) so board ids can't be probed (07-security.md › I1).
+ */
+export function requireActor(db: Db, clock: Clock): RequestHandler {
+  return async (req, res, next) => {
+    const cookies = req.cookies as Record<string, string | undefined> | undefined;
+    const eventId = req.params.eventId;
+    const actor = await resolveActor(
+      db,
+      clock,
+      cookies?.[SESSION_COOKIE],
+      typeof eventId === 'string' ? eventId : '',
+    );
+    if (!actor) {
+      next(notFound());
+      return;
+    }
+    res.locals.actor = actor;
+    next();
+  };
 }
