@@ -106,6 +106,10 @@
     background: #2e9e6b;
     box-shadow: 0 0 0 4px rgb(46 158 107 / 0.18);
   }
+  .conn-dot.conn-dot-wait {
+    background: var(--border-ui);
+    box-shadow: none;
+  }
   .conn-dot.conn-dot-off {
     background: var(--error);
     box-shadow: 0 0 0 4px rgb(179 38 30 / 0.18);
