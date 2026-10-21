@@ -1,8 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forgetCreatedBoard, rememberCreatedBoard } from '../src/api/created-board.ts';
-import { routes } from '../src/router.tsx';
+import { renderRoutes } from './render-routes.tsx';
 
 const eventId = '0b5a4c1e-8a57-4d4b-9f4c-2f1b8e7a9c11';
 const inviteUrl = 'http://localhost:5173/e/q8Zp2vN7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaakT4w';
@@ -25,9 +24,7 @@ function renderShare() {
     },
     { eventId, inviteUrl, hostUrl },
   );
-  const router = createMemoryRouter(routes, { initialEntries: [`/events/${eventId}/share`] });
-  render(<RouterProvider router={router} />);
-  return router;
+  return renderRoutes(`/events/${eventId}/share`);
 }
 
 function stubClipboard(writeText: (text: string) => Promise<void>) {

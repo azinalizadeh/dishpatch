@@ -96,3 +96,24 @@
   }
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: global reduced-motion override */
+
+/* Board (design/mockup.html › .conn, .slot.claimed). The live dot's green and halos are the mockup's own values. */
+@layer components {
+  .conn-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #2e9e6b;
+    box-shadow: 0 0 0 4px rgb(46 158 107 / 0.18);
+  }
+  .conn-dot.conn-dot-off {
+    background: var(--error);
+    box-shadow: 0 0 0 4px rgb(179 38 30 / 0.18);
+  }
+  .slot-sticker:nth-child(odd) {
+    transform: rotate(-0.6deg);
+  }
+  .slot-sticker:nth-child(even) {
+    transform: rotate(0.5deg);
+  }
+}

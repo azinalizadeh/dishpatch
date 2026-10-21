@@ -1,7 +1,19 @@
-import { Link, Outlet } from 'react-router';
+import { type ReactNode, useState } from 'react';
+import { Link, Outlet, useOutletContext } from 'react-router';
+
+interface ShellContext {
+  /** Puts something at the right end of the top bar (the board's ConnectionIndicator). */
+  setHeaderEnd: (node: ReactNode) => void;
+}
+
+/** For screens inside AppShell: fill the top bar's right-hand slot. */
+export function useShell(): ShellContext {
+  return useOutletContext<ShellContext>();
+}
 
 /** Top bar with the logo, then the routed screen (design/mockup.html › .topbar). */
 export function AppShell() {
+  const [headerEnd, setHeaderEnd] = useState<ReactNode>(null);
   return (
     <>
       <header className="flex h-14 items-center justify-between border-b border-border bg-surface px-s4 tablet:h-16 tablet:px-s6">
@@ -31,9 +43,10 @@ export function AppShell() {
           </span>
           Dishpatch
         </Link>
+        {headerEnd}
       </header>
       <main id="main">
-        <Outlet />
+        <Outlet context={{ setHeaderEnd } satisfies ShellContext} />
       </main>
     </>
   );

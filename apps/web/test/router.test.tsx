@@ -1,10 +1,9 @@
-import { cleanup, render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { cleanup, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { routes } from '../src/router.tsx';
+import { renderRoutes } from './render-routes.tsx';
 
 function renderAt(path: string) {
-  render(<RouterProvider router={createMemoryRouter(routes, { initialEntries: [path] })} />);
+  renderRoutes(path);
 }
 
 describe('router (smoke)', () => {

@@ -1,8 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rememberJoin } from '../src/api/joined-boards.ts';
-import { routes } from '../src/router.tsx';
+import { renderRoutes } from './render-routes.tsx';
 
 const token = 'i'.repeat(43);
 const eventId = '0b5a4c1e-8a57-4d4b-9f4c-2f1b8e7a9c11';
@@ -42,9 +41,7 @@ function stubApi(handler: Handler) {
 }
 
 function renderJoin() {
-  const router = createMemoryRouter(routes, { initialEntries: [`/e/${token}`] });
-  render(<RouterProvider router={router} />);
-  return router;
+  return renderRoutes(`/e/${token}`);
 }
 
 describe('JoinScreen', () => {
