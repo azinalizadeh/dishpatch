@@ -9,6 +9,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ApiRequestError, NetworkError, postJson } from '../api/client.ts';
 import { rememberCreatedBoard } from '../api/created-board.ts';
+import { rememberJoin } from '../api/joined-boards.ts';
 import { Banner } from '../components/Banner.tsx';
 import { Button } from '../components/Button.tsx';
 import { Stepper } from '../components/Stepper.tsx';
@@ -123,6 +124,16 @@ export function CreateScreen() {
       const created = await postJson('/api/events', CreateEventResponse, parsed.data);
       rememberCreatedBoard(parsed.data, created);
       navigate(`/events/${created.eventId}/share`);
+      // The host already has a session: opening their own invite link here goes to the board
+      // instead of joining a second time as a guest. Best-effort, after the board exists.
+      try {
+        void rememberJoin(
+          new URL(created.inviteUrl).pathname.split('/').pop() ?? '',
+          created.eventId,
+        );
+      } catch {
+        // An unparseable inviteUrl only costs the shortcut.
+      }
     } catch (err) {
       setSubmitting(false);
       if (err instanceof NetworkError) {

@@ -18,13 +18,16 @@ describe('HostLinkScreen', () => {
   });
 
   it('exchanges the token once and replaces the URL with the board', async () => {
-    const fetchMock = vi.fn(async () => Response.json({ eventId }));
+    const fetchMock = vi.fn(async (_path: string) => Response.json({ eventId }));
     vi.stubGlobal('fetch', fetchMock);
     const router = renderAt(`/h/${'t'.repeat(43)}`);
 
     await waitFor(() => expect(router.state.location.pathname).toBe(`/events/${eventId}`));
     expect(router.state.historyAction).toBe('REPLACE');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // One exchange; the board then loads its own snapshot.
+    expect(
+      fetchMock.mock.calls.filter(([path]) => String(path).includes('/host-links/')),
+    ).toHaveLength(1);
   });
 
   it('shows a retryable error, not the not-found screen, when the server fails', async () => {

@@ -6,6 +6,7 @@ import {
   DIETARY,
   DietarySchema,
   ERROR_CODES,
+  JoinInput,
   SlotCountInput,
 } from '../src/index.ts';
 import { friendsgivingPayload } from './fixtures/create-event.ts';
@@ -139,5 +140,36 @@ describe('CreateEventInput', () => {
     expect(SlotCountInput.safeParse({ category: 'drinks', count: 12 }).success).toBe(true);
     expect(SlotCountInput.safeParse({ category: 'drinks', count: 1.5 }).success).toBe(false);
     expect(SlotCountInput.safeParse({ category: 'other', count: 1 }).success).toBe(false);
+  });
+});
+
+describe('JoinInput', () => {
+  it('JoinInput trims names and dedupes dietary needs', () => {
+    expect(
+      JoinInput.parse({ displayName: '  Sam  ', dietaryNeeds: ['vegan', 'halal', 'vegan'] }),
+    ).toEqual({ displayName: 'Sam', dietaryNeeds: ['vegan', 'halal'] });
+  });
+
+  it('rejects a name with control characters', () => {
+    const result = JoinInput.safeParse({ displayName: 'Sa\u0000m', dietaryNeeds: [] });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual(['displayName']);
+  });
+
+  it('rejects a name of only spaces and unknown needs', () => {
+    const result = JoinInput.safeParse({ displayName: '   ', dietaryNeeds: ['keto'] });
+    expect(result.error?.issues.map((i) => i.path.join('.'))).toEqual([
+      'displayName',
+      'dietaryNeeds.0',
+    ]);
+  });
+
+  it('counts emoji names by code points, up to 40', () => {
+    expect(JoinInput.safeParse({ displayName: '🥧'.repeat(40), dietaryNeeds: [] }).success).toBe(
+      true,
+    );
+    expect(JoinInput.safeParse({ displayName: '🥧'.repeat(41), dietaryNeeds: [] }).success).toBe(
+      false,
+    );
   });
 });

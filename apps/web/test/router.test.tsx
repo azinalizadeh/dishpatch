@@ -9,12 +9,18 @@ function renderAt(path: string) {
 
 describe('router (smoke)', () => {
   beforeEach(() => {
-    // Any API call (the host-link exchange) answers 404 here.
+    // Every API call answers 404 here: INVITE_INVALID for invites, NOT_FOUND otherwise.
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
+      vi.fn(async (path: string) =>
         Response.json(
-          { error: { code: 'NOT_FOUND', message: 'Not found.', requestId: 'req-1' } },
+          {
+            error: {
+              code: path.startsWith('/api/invites/') ? 'INVITE_INVALID' : 'NOT_FOUND',
+              message: 'Not found.',
+              requestId: 'req-1',
+            },
+          },
           { status: 404 },
         ),
       ),
@@ -27,11 +33,12 @@ describe('router (smoke)', () => {
 
   it.each([
     ['/', "Who's bringing what?"],
-    // Without the in-memory links (e.g. after a reload) share falls through to the board.
-    ['/events/abc/share', 'Live board'],
-    ['/e/tok', 'Join board'],
+    // Without the in-memory links (e.g. after a reload) share falls through to the board,
+    // which needs a session for that board.
+    ['/events/abc/share', 'Nothing on this plate'],
+    ['/e/tok', "This invite link doesn't work anymore"],
     ['/h/tok', 'Nothing on this plate'],
-    ['/events/abc', 'Live board'],
+    ['/events/abc', 'Nothing on this plate'],
     ['/events/abc/coverage', 'Dietary coverage'],
     ['/events/abc/host', 'Host settings'],
     ['/no/such/page', 'Nothing on this plate'],

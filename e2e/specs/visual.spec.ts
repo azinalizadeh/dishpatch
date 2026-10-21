@@ -92,7 +92,61 @@ for (const { suffix, options } of VARIANTS) {
   });
 }
 
+/** The mockup's board (21 Nov 18:00, "6 going") created and joined through the public API. */
+async function seedMockupBoard(page: Page, baseURL: string | undefined): Promise<string> {
+  const now = new Date();
+  const year =
+    now < new Date(now.getFullYear(), 10, 21, 18) ? now.getFullYear() : now.getFullYear() + 1;
+  const headers = { Origin: new URL(baseURL ?? 'http://localhost:3000').origin };
+  const res = await page.request.post('/api/events', {
+    headers,
+    data: {
+      title: "Friendsgiving at Mina's",
+      startsAt: new Date(`${year}-11-21T18:00:00Z`).toISOString(),
+      location: "Mina's flat, 3rd floor",
+      hostName: 'Mina',
+      hostDietaryNeeds: [],
+      slots: [{ category: 'main', count: 3 }],
+    },
+  });
+  const { inviteUrl } = (await res.json()) as { inviteUrl: string };
+  const invitePath = new URL(inviteUrl).pathname;
+  for (const name of ['Reza', 'Leila', 'Jonah', 'Sam', 'Ana']) {
+    await page.request.post(`/api/invites${invitePath.slice(2)}/join`, {
+      headers,
+      data: { displayName: name, dietaryNeeds: [] },
+    });
+  }
+  return invitePath;
+}
+
+for (const { suffix, options } of VARIANTS) {
+  test(`join${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page } = await open(browser, options);
+    const invitePath = await seedMockupBoard(page, baseURL);
+    // Joining from a fresh context, so this browser has no session for the board yet.
+    const guest = await open(browser, options);
+    await guest.page.goto(invitePath);
+    await guest.page.getByLabel('Your name').fill('Priya');
+    await guest.page.getByRole('button', { name: 'Vegan' }).click();
+    await guest.page.getByLabel('Your name').focus();
+    await guest.page.getByLabel('Your name').blur();
+    await shot(guest.page, `join${suffix}`);
+    await guest.context.close();
+    await context.close();
+  });
+}
+
 for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-dark'))) {
+  test(`join-error${suffix}`, async ({ browser }) => {
+    const { context, page } = await open(browser, options);
+    await page.goto(`/e/${'x'.repeat(43)}`);
+    await page.getByRole('alert').waitFor();
+    await page.getByRole('alert').blur();
+    await shot(page, `join-error${suffix}`);
+    await context.close();
+  });
+
   test(`create-error${suffix}`, async ({ browser }) => {
     const { context, page } = await open(browser, options);
     await fillMockupForm(page, { past: true, withName: false });

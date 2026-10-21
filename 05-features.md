@@ -62,12 +62,12 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
 
 - **Stories:** US-03, US-04 · **Screens:** `join` (default, error), `board` (design/screens/join*.png) · **Endpoints:** `GET /api/invites/:inviteToken`, `POST /api/invites/:inviteToken/join` · **Entities:** participants, sessions
 - **Subtasks**
-  - [ ] F2.1 `[domain]` `JoinInput` schema (name trim 1–40, no control chars, needs ⊆ DIETARY, deduped). Files: `packages/shared/src/schemas.ts`, `packages/shared/test/schemas.test.ts`. Skill: `tdd`
-  - [ ] F2.2 `[domain]` Participant service: `previewInvite(token)`, `join(token, input)` (expired → `INVITE_INVALID`; ≤ 100 participants; unique name → `NAME_TAKEN`; creates session). Files: `apps/api/src/domain/participants.ts`, `apps/api/test/participants.int.test.ts`. Skill: `tdd`
-  - [ ] F2.3 `[api]` Routes for preview (30/min/IP) and join (10/min/IP), cookie `Path=/api/events/<id>`. Files: `apps/api/src/routes/invites.ts`, `apps/api/test/join.int.test.ts`, `apps/api/test/invites.int.test.ts`. Skill: `tdd`
-  - [ ] F2.4 `[api]` Session resolver middleware `resolveActor(req, eventId)` (sha256 lookup, expiry check, returns `Actor | null`) used by every `/api/events/:id*` route. Files: `apps/api/src/middleware/session.ts`, `apps/api/test/session.int.test.ts`. Skill: `tdd`
-  - [ ] F2.5 `[ui]` `JoinScreen`: preview skeleton, name field, chip group, name-taken inline error, board-full banner, `join/error` screen, redirect when a session already exists (snapshot 200), `replaceState` to `/events/:id`. Files: `apps/web/src/screens/JoinScreen.tsx`, `apps/web/src/components/Chip.tsx`, `apps/web/test/JoinScreen.test.tsx`. Skill: `design-parity`
-  - [ ] F2.6 `[test]` E2E join flow + invalid link. Files: `e2e/specs/join.spec.ts`. Skill: none
+  - [x] F2.1 `[domain]` `JoinInput` schema (name trim 1–40, no control chars, needs ⊆ DIETARY, deduped). Files: `packages/shared/src/schemas.ts`, `packages/shared/test/schemas.test.ts`. Skill: `tdd`
+  - [x] F2.2 `[domain]` Participant service: `previewInvite(token)`, `join(token, input)` (expired → `INVITE_INVALID`; ≤ 100 participants; unique name → `NAME_TAKEN`; creates session). Files: `apps/api/src/domain/participants.ts`, `apps/api/test/participants.int.test.ts`. Skill: `tdd`
+  - [x] F2.3 `[api]` Routes for preview (30/min/IP) and join (10/min/IP), cookie `Path=/api/events/<id>`. Files: `apps/api/src/routes/invites.ts`, `apps/api/test/join.int.test.ts`, `apps/api/test/invites.int.test.ts`. Skill: `tdd`
+  - [x] F2.4 `[api]` Session resolver middleware `resolveActor(req, eventId)` (sha256 lookup, expiry check, returns `Actor | null`) used by every `/api/events/:id*` route. Files: `apps/api/src/middleware/session.ts`, `apps/api/test/session.int.test.ts`. Skill: `tdd`
+  - [x] F2.5 `[ui]` `JoinScreen`: preview skeleton, name field, chip group, name-taken inline error, board-full banner, `join/error` screen, redirect when a session already exists (snapshot 200), `replaceState` to `/events/:id`. Files: `apps/web/src/screens/JoinScreen.tsx`, `apps/web/src/components/Chip.tsx`, `apps/web/test/JoinScreen.test.tsx`. Skill: `design-parity`
+  - [x] F2.6 `[test]` E2E join flow + invalid link. Files: `e2e/specs/join.spec.ts`. Skill: none
 - **Tests**
   - Unit: `schemas.test.ts › JoinInput trims names and dedupes dietary needs`; `› rejects a name with control characters`.
   - Integration: `participants.int.test.ts › join creates a guest participant and a session hash`; `› join on an expired event throws INVITE_INVALID`; `› 101st participant gets EVENT_FULL`.
@@ -83,18 +83,18 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - I1/I4 → preview exposes only title/date/location/host name/count; participant names and needs need a session.
   - Session hardening (S2) → cookie flags tested in `session.int.test.ts`.
 - **Definition of Done**
-  - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
-  - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
-  - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
-  - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
-  - [ ] Lint/format/typecheck clean; no new warnings
-  - [ ] No secrets in code or logs; errors handled with user-friendly messages
-  - [ ] README/docs updated if behavior or setup changed
-  - [ ] Any skill used for this feature is logged in skills/usage-log.md
+  - [x] All subtasks done; acceptance criteria of linked stories pass
+  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [x] Security controls for this feature implemented and tested (at least one negative/abuse test)
+  - [x] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
+  - [x] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
+  - [x] Lint/format/typecheck clean; no new warnings
+  - [x] No secrets in code or logs; errors handled with user-friendly messages
+  - [x] README/docs updated if behavior or setup changed
+  - [x] Any skill used for this feature is logged in skills/usage-log.md
   - Feature-specific:
-  - [ ] Invalid, rotated and expired invite links produce byte-identical 404 bodies (except `requestId`)
-  - [ ] The join screen states that dietary needs are optional, visible only to this board, and deleted with it
+  - [x] Invalid, rotated and expired invite links produce byte-identical 404 bodies (except `requestId`)
+  - [x] The join screen states that dietary needs are optional, visible only to this board, and deleted with it
 
 ---
 

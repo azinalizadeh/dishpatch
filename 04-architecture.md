@@ -325,7 +325,7 @@ dishpatch/
 │   └── web/
 │       ├── index.html  vite.config.ts
 │       ├── src/
-│       │   ├── main.tsx  router.tsx  api/{client.ts, queries.ts, use-board-stream.ts}
+│       │   ├── main.tsx  router.tsx  format.ts  api/{client.ts, created-board.ts, joined-boards.ts, queries.ts, use-board-stream.ts}
 │       │   ├── styles/{tokens.css, app.css}
 │       │   ├── components/{Button, TextField, Stepper, Chip, Tag, SlotCard, CategoryGroup, CoverageMeter, ConnectionIndicator, Banner, Toast, Dialog, LinkBox, Switch, Avatar, Skeleton}.tsx
 │       │   └── screens/{CreateScreen, ShareScreen, JoinScreen, HostLinkScreen, BoardScreen, ClaimDialog, CoverageScreen, HostScreen, NotFoundScreen}.tsx

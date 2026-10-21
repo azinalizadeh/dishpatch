@@ -9,4 +9,5 @@ export const LIMITS = {
   nameMax: 40,
   slotsPerCategoryMax: 12,
   slotsTotalMax: 40,
+  participantsMax: 100,
 } as const;

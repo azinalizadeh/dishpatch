@@ -15,6 +15,7 @@ import type { EventBus } from './realtime/event-bus.ts';
 import { eventsRouter } from './routes/events.ts';
 import { healthRouter } from './routes/health.ts';
 import { hostLinksRouter } from './routes/host-links.ts';
+import { invitesRouter } from './routes/invites.ts';
 import { testOnlyRouter } from './routes/test-only.ts';
 
 export interface AppDeps {
@@ -29,7 +30,7 @@ export interface AppDeps {
 
 /** Builds the Express app without listening, so tests can drive it with supertest. */
 export function buildApp(deps: AppDeps): Express {
-  const { env, db, clock } = deps;
+  const { env, db, clock, bus } = deps;
   const limits = createRateLimits();
   const logger = deps.logger ?? createLogger(env.LOG_LEVEL);
   const app = express();
@@ -48,6 +49,7 @@ export function buildApp(deps: AppDeps): Express {
   api.use(cookieParser());
   api.use(healthRouter(db));
   api.use(eventsRouter({ db, clock, env, limits }));
+  api.use(invitesRouter({ db, clock, env, bus, limits }));
   api.use(hostLinksRouter({ db, clock, env, limits }));
   if (env.NODE_ENV === 'test') api.use(testOnlyRouter());
   api.use(notFoundHandler);

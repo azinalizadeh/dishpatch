@@ -1,5 +1,5 @@
 export { CATEGORIES, type Category, LIMITS } from './categories.ts';
-export { DIETARY, type Dietary } from './dietary.ts';
+export { DIETARY, DIETARY_LABELS, type Dietary } from './dietary.ts';
 export { ERROR_CODES, type ErrorCode } from './errors.ts';
 export {
   type ApiError,
@@ -9,6 +9,12 @@ export {
   CreateEventResponse,
   DietarySchema,
   HostLinkResponse,
+  InvitePreview,
+  JoinInput,
+  JoinResponse,
+  ParticipantView,
   SlotCountInput,
+  SlotView,
+  Snapshot,
   TokenParam,
 } from './schemas.ts';

@@ -9,12 +9,15 @@ export const CategorySchema = z.enum(CATEGORIES);
 const NO_CONTROL = /^[^\p{Cc}]*$/u;
 const NO_CONTROL_MESSAGE = 'Remove the special characters.';
 
+/** Length in code points, as Postgres `varchar(n)` counts it (an emoji is 1, not 2). */
+const codePoints = (value: string) => [...value].length;
+
 function text(max: number, messages: { empty: string; tooLong: string }) {
   return z
     .string()
     .trim()
     .min(1, messages.empty)
-    .max(max, messages.tooLong)
+    .refine((value) => codePoints(value) <= max, messages.tooLong)
     .regex(NO_CONTROL, NO_CONTROL_MESSAGE);
 }
 
@@ -96,6 +99,69 @@ export type CreateEventResponse = z.infer<typeof CreateEventResponse>;
 export const HostLinkResponse = z.object({ eventId: z.uuid() });
 
 export type HostLinkResponse = z.infer<typeof HostLinkResponse>;
+
+export const JoinInput = z.object({
+  displayName: text(LIMITS.nameMax, {
+    empty: 'Add a name so people know who you are.',
+    tooLong: `Keep your name under ${LIMITS.nameMax} characters.`,
+  }),
+  // Needs are a set: repeats are dropped rather than rejected.
+  dietaryNeeds: z.array(DietarySchema).transform((needs) => [...new Set(needs)]),
+});
+
+export type JoinInput = z.output<typeof JoinInput>;
+
+/** What anyone holding the invite link may see: no participant names or needs (07-security.md › I1/I4). */
+export const InvitePreview = z.object({
+  title: z.string(),
+  startsAt: z.iso.datetime({ offset: true }),
+  location: z.string().nullable(),
+  hostName: z.string(),
+  participantCount: z.number().int().min(0),
+});
+
+export type InvitePreview = z.infer<typeof InvitePreview>;
+
+export const JoinResponse = z.object({ eventId: z.uuid(), participantId: z.uuid() });
+
+export type JoinResponse = z.infer<typeof JoinResponse>;
+
+export const ParticipantView = z.object({
+  id: z.uuid(),
+  displayName: z.string(),
+  dietaryNeeds: z.array(DietarySchema),
+  role: z.enum(['host', 'guest']),
+});
+
+export type ParticipantView = z.infer<typeof ParticipantView>;
+
+export const SlotView = z.object({
+  id: z.uuid(),
+  category: CategorySchema,
+  position: z.number().int(),
+  claimedBy: z.object({ id: z.uuid(), displayName: z.string() }).nullable(),
+  dishName: z.string().nullable(),
+  dishTags: z.array(DietarySchema),
+});
+
+export type SlotView = z.infer<typeof SlotView>;
+
+/** `GET /api/events/:eventId` for a member of the board. `coverage` joins it with F5. */
+export const Snapshot = z.object({
+  event: z.object({
+    id: z.uuid(),
+    title: z.string(),
+    startsAt: z.iso.datetime({ offset: true }),
+    location: z.string().nullable(),
+    locked: z.boolean(),
+  }),
+  slots: z.array(SlotView),
+  participants: z.array(ParticipantView),
+  me: z.object({ participantId: z.uuid(), role: z.enum(['host', 'guest']) }),
+  seq: z.number().int().min(0),
+});
+
+export type Snapshot = z.infer<typeof Snapshot>;
 
 /** Capability tokens: 32 random bytes as base64url (07-security.md › Authentication). */
 export const TokenParam = z.string().regex(/^[A-Za-z0-9_-]{43}$/);

@@ -1,13 +1,24 @@
-import { rateLimit } from 'express-rate-limit';
+import type { Request } from 'express';
+import { type Options, rateLimit } from 'express-rate-limit';
 import { rateLimited } from '../domain/errors.ts';
+import { hashToken } from '../domain/tokens.ts';
+import { SESSION_COOKIE } from './session.ts';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
-/** An in-memory, per-IP limiter whose 429 goes through the central error handler. */
-function perIp(windowMs: number, limit: number, message: string) {
+/** An in-memory limiter (per IP unless `keyGenerator` says otherwise) whose 429 goes through the central error handler. */
+function limiter(
+  windowMs: number,
+  limit: number,
+  message: string,
+  extra: Partial<
+    Pick<Options, 'keyGenerator' | 'requestWasSuccessful' | 'skipSuccessfulRequests'>
+  > = {},
+) {
   return rateLimit({
     windowMs,
+    ...extra,
     limit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
@@ -19,6 +30,28 @@ function perIp(windowMs: number, limit: number, message: string) {
   });
 }
 
+const perIp = (windowMs: number, limit: number, message: string) =>
+  limiter(windowMs, limit, message);
+
+/**
+ * Counts only 404s per IP, i.e. board lookups without a valid session: caps board-id and session
+ * probing. Members' own 429s and 5xx don't count, so guests sharing one IP aren't locked out.
+ */
+const notFoundsPerIp = (windowMs: number, limit: number, message: string) =>
+  limiter(windowMs, limit, message, {
+    skipSuccessfulRequests: true,
+    requestWasSuccessful: (_req, res) => res.statusCode !== 404,
+  });
+
+/** Keyed by the session cookie's hash; mount after `requireActor`, so only real sessions count. */
+const perSession = (windowMs: number, limit: number, message: string) =>
+  limiter(windowMs, limit, message, {
+    keyGenerator: (req: Request) => {
+      const cookies = req.cookies as Record<string, string | undefined> | undefined;
+      return hashToken(cookies?.[SESSION_COOKIE] ?? '').toString('hex');
+    },
+  });
+
 /**
  * Limits from 04-architecture.md › API contract. Built per app instance, so each `buildApp()`
  * (and each test) starts with empty counters.
@@ -27,6 +60,10 @@ export function createRateLimits() {
   return {
     createEvent: perIp(HOUR, 5, "You've made a lot of boards — try again in a bit."),
     hostLink: perIp(MINUTE, 10, 'Too many attempts. Try again in a minute.'),
+    invitePreview: perIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
+    join: perIp(MINUTE, 10, 'Too many tries. Wait a minute and try again.'),
+    snapshot: perSession(MINUTE, 120, 'Too many requests. Wait a minute and try again.'),
+    boardMisses: notFoundsPerIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
   };
 }
 
