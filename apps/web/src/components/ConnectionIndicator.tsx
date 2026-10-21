@@ -1,15 +1,15 @@
 import type { Connection } from '../api/use-board-stream.ts';
 
-/**
- * Top-bar status (03-design.md › board): "Live · 6 here" with a green dot, or a red
- * "Reconnecting…". A polite status region, so changes are read out without stealing focus.
- */
 const dotState: Record<Exclude<Connection, 'notfound'>, string> = {
   connecting: 'conn-dot-wait',
   live: '',
   reconnecting: 'conn-dot-off',
 };
 
+/**
+ * Top-bar status (03-design.md › board): "Live · 6 here" with a green dot, or a red
+ * "Reconnecting…". A polite status region, so changes are read out without stealing focus.
+ */
 export function ConnectionIndicator({
   connection,
   presence,
