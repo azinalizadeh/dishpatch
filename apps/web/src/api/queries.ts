@@ -1,5 +1,11 @@
 import { type ClaimInput, ClaimResponse, type SlotView, Snapshot } from '@dishpatch/shared';
-import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { ApiRequestError, deleteJson, getJson, postJson } from './client.ts';
 
 export const boardKey = (eventId: string) => ['board', eventId] as const;
@@ -19,6 +25,27 @@ export function useBoardSnapshot(eventId: string) {
     // A 404 means "not a member" (or no such board): retrying won't change that.
     retry: (failures, err) => !isNotFound(err) && failures < 2,
   });
+}
+
+/** Shown when a claim or release never reached the API (02-user-flows.md › D14, E8). */
+export const NETWORK_ERROR_COPY = "Couldn't reach Dishpatch — try again.";
+
+/** Codes meaning the board itself changed (locked, already open, or gone): reload it, no toast. */
+export const BOARD_CHANGED: ReadonlySet<string> = new Set([
+  'BOARD_LOCKED',
+  'NOT_CLAIMED',
+  'NOT_FOUND',
+]);
+
+const slotMutationKey = (eventId: string) => ['slot-mutation', eventId] as const;
+
+/** Slots with a claim or release in flight (03-design.md › SlotCard › optimistic, 70% opacity). */
+export function usePendingSlotIds(eventId: string): ReadonlySet<string> {
+  const ids = useMutationState({
+    filters: { mutationKey: slotMutationKey(eventId), status: 'pending' },
+    select: (m) => (m.state.variables as { slot: SlotView } | undefined)?.slot.id,
+  });
+  return new Set(ids.filter((id): id is string => id !== undefined));
 }
 
 /** A claim or release that hasn't answered in 10 s is rolled back (05-features.md › F4 edge cases). */
@@ -60,6 +87,7 @@ function useOptimisticSlotMutation<V extends { slot: SlotView }>(
 ) {
   const queryClient = useQueryClient();
   return useMutation<ClaimResponse, Error, V, Optimistic>({
+    mutationKey: slotMutationKey(eventId),
     mutationFn: (vars) => request(vars, AbortSignal.timeout(MUTATION_TIMEOUT_MS)),
     onMutate: (vars) => {
       const previous =
@@ -82,7 +110,7 @@ function useOptimisticSlotMutation<V extends { slot: SlotView }>(
         );
       }
       // The board changed under us (locked, or we're no longer a member): reload it.
-      if (err instanceof ApiRequestError && ['BOARD_LOCKED', 'NOT_FOUND'].includes(err.code)) {
+      if (err instanceof ApiRequestError && BOARD_CHANGED.has(err.code)) {
         void queryClient.invalidateQueries({ queryKey: boardKey(eventId) });
       }
     },

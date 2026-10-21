@@ -8,7 +8,12 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { ApiRequestError, NetworkError } from '../api/client.ts';
-import { useReleaseSlot } from '../api/queries.ts';
+import {
+  BOARD_CHANGED,
+  NETWORK_ERROR_COPY,
+  usePendingSlotIds,
+  useReleaseSlot,
+} from '../api/queries.ts';
 import { type Connection, useBoardStream } from '../api/use-board-stream.ts';
 import { CATEGORY_LABELS } from '../categories.ts';
 import { useShell } from '../components/AppShell.tsx';
@@ -20,7 +25,7 @@ import { ConnectionIndicator } from '../components/ConnectionIndicator.tsx';
 import { Skeleton } from '../components/Skeleton.tsx';
 import type { OpenSlotState } from '../components/SlotCard.tsx';
 import { Tag } from '../components/Tag.tsx';
-import { Toast } from '../components/Toast.tsx';
+import { Toast, type ToastAction, type ToastRole } from '../components/Toast.tsx';
 import { formatWhen } from '../format.ts';
 import { ClaimDialog } from './ClaimDialog.tsx';
 import { NotFoundScreen } from './NotFoundScreen.tsx';
@@ -36,9 +41,14 @@ export function BoardScreen() {
   const { eventId = '' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const claimSlotId = searchParams.get('claim');
-  const [toast, setToast] = useState<{ message: string; role: 'status' | 'alert' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    role: ToastRole;
+    action?: ToastAction | undefined;
+  } | null>(null);
   const showToast = useCallback(
-    (message: string, role: 'status' | 'alert' = 'status') => setToast({ message, role }),
+    (message: string, role: ToastRole = 'status', action?: ToastAction) =>
+      setToast({ message, role, action }),
     [],
   );
   const dismissToast = useCallback(() => setToast(null), []);
@@ -52,7 +62,8 @@ export function BoardScreen() {
   );
   const { query, board, connection, presence, announcement } = useBoardStream(eventId, onEvent);
   const { setHeaderEnd } = useShell();
-  const release = useReleaseSlot(eventId);
+  const { mutate: release } = useReleaseSlot(eventId);
+  const pendingSlotIds = usePendingSlotIds(eventId);
 
   useEffect(() => {
     setHeaderEnd(<ConnectionIndicator connection={connection} presence={presence} />);
@@ -66,23 +77,25 @@ export function BoardScreen() {
   );
   const closeClaim = useCallback(() => setSearchParams({}, { replace: true }), [setSearchParams]);
   const releaseSlot = useCallback(
-    (slot: SlotView) =>
-      release.mutate(
+    function releaseWithRetry(slot: SlotView) {
+      release(
         { slot },
         {
           onError: (err) => {
-            if (err instanceof NetworkError) showToast("Couldn't reach Dishpatch — try again.");
-            else if (err instanceof ApiRequestError && err.code === 'NOT_OWNER') {
-              showToast("That isn't your claim.");
-            } else if (
-              !(err instanceof ApiRequestError) ||
-              !['BOARD_LOCKED', 'NOT_CLAIMED', 'NOT_FOUND'].includes(err.code)
-            ) {
-              showToast(err.message);
+            if (err instanceof NetworkError) {
+              showToast(NETWORK_ERROR_COPY, 'alert', {
+                label: 'Try again',
+                onClick: () => releaseWithRetry(slot),
+              });
+            } else if (err instanceof ApiRequestError && err.code === 'NOT_OWNER') {
+              showToast("That isn't your claim.", 'alert');
+            } else if (!(err instanceof ApiRequestError) || !BOARD_CHANGED.has(err.code)) {
+              showToast(err.message, 'alert');
             }
           },
         },
-      ),
+      );
+    },
     [release, showToast],
   );
 
@@ -97,8 +110,9 @@ export function BoardScreen() {
           connection={connection}
           onClaim={openClaim}
           onRelease={releaseSlot}
+          pendingSlotIds={pendingSlotIds}
         />
-        {claimSlotId && connection !== 'reconnecting' ? (
+        {claimSlotId ? (
           <ClaimDialog
             board={board}
             slotId={claimSlotId}
@@ -132,7 +146,12 @@ export function BoardScreen() {
         {announcement}
       </p>
       {content}
-      <Toast message={toast?.message ?? null} role={toast?.role} onDismiss={dismissToast} />
+      <Toast
+        message={toast?.message ?? null}
+        role={toast?.role}
+        action={toast?.action}
+        onDismiss={dismissToast}
+      />
     </section>
   );
 }
@@ -171,11 +190,13 @@ function LiveBoard({
   connection,
   onClaim,
   onRelease,
+  pendingSlotIds,
 }: {
   board: Snapshot;
   connection: Connection;
   onClaim: (slot: SlotView) => void;
   onRelease: (slot: SlotView) => void;
+  pendingSlotIds: ReadonlySet<string>;
 }) {
   const { event, slots, participants, me } = board;
   const host = participants.find((p) => p.role === 'host');
@@ -253,6 +274,7 @@ function LiveBoard({
                 isHost={me.role === 'host'}
                 onClaim={onClaim}
                 onRelease={onRelease}
+                pendingSlotIds={pendingSlotIds}
               />
             );
           })}

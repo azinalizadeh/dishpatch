@@ -132,8 +132,11 @@ export const ClaimInput = z.object({
     empty: "Add the dish you're bringing.",
     tooLong: `Keep the dish under ${LIMITS.dishMax} characters.`,
   }),
-  // Tags are a set: repeats are dropped rather than rejected.
-  dishTags: z.array(DietarySchema).transform((tags) => [...new Set(tags)]),
+  // Tags are a set: repeats are dropped rather than rejected (but capped, 07-security.md › D3).
+  dishTags: z
+    .array(DietarySchema)
+    .max(DIETARY.length, 'Pick each tag once.')
+    .transform((tags) => [...new Set(tags)]),
 });
 
 export type ClaimInput = z.output<typeof ClaimInput>;
@@ -179,6 +182,9 @@ export type Snapshot = z.infer<typeof Snapshot>;
 export const ClaimResponse = z.object({ slot: SlotView, seq: z.number().int().min(1) });
 
 export type ClaimResponse = z.infer<typeof ClaimResponse>;
+
+/** Ids in API paths (board, slot): anything else is answered like an unknown id. */
+export const IdParam = z.uuid();
 
 /** Capability tokens: 32 random bytes as base64url (07-security.md › Authentication). */
 export const TokenParam = z.string().regex(/^[A-Za-z0-9_-]{43}$/);

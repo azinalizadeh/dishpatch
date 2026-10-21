@@ -122,4 +122,20 @@
   .slot-sticker:nth-child(even) {
     transform: rotate(0.5deg);
   }
+  /* design/mockup.html › .slot.just: a new claim pops in. */
+  .slot-sticker.slot-pop {
+    animation: slot-pop var(--dur-slow) var(--ease);
+  }
+}
+
+@keyframes slot-pop {
+  0% {
+    transform: scale(0.92);
+  }
+  60% {
+    transform: scale(1.03) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1);
+  }
 }

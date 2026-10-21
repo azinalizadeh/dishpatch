@@ -19,6 +19,7 @@ export {
   CreateEventResponse,
   DietarySchema,
   HostLinkResponse,
+  IdParam,
   InvitePreview,
   JoinInput,
   JoinResponse,

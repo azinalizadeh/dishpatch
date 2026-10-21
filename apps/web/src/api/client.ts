@@ -1,5 +1,8 @@
 import { ApiErrorSchema } from '@dishpatch/shared';
 
+/** Shown for any failure the API didn't explain (03-design.md: never raw codes). */
+export const GENERIC_ERROR_COPY = 'Something went wrong on our side. Please try again.';
+
 /** An error answer from the API, in the one shape every endpoint uses. */
 export class ApiRequestError extends Error {
   override name = 'ApiRequestError';
@@ -14,7 +17,7 @@ export class ApiRequestError extends Error {
   constructor(status: number, body: unknown) {
     const parsed = ApiErrorSchema.safeParse(body);
     const error = parsed.success ? parsed.data.error : undefined;
-    super(error?.message ?? 'Something went wrong on our side. Please try again.');
+    super(error?.message ?? GENERIC_ERROR_COPY);
     this.status = status;
     this.code = error?.code ?? 'INTERNAL';
     this.requestId = error?.requestId;

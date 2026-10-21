@@ -1,6 +1,11 @@
-import { type ClaimInput, type ClaimResponse, type Dietary, LIMITS } from '@dishpatch/shared';
+import {
+  type ClaimInput,
+  type ClaimResponse,
+  type Dietary,
+  IdParam,
+  LIMITS,
+} from '@dishpatch/shared';
 import { and, count, eq, isNull } from 'drizzle-orm';
-import { z } from 'zod';
 import type { Clock } from '../clock.ts';
 import type { Db } from '../db/client.ts';
 import { events, participants, slots } from '../db/schema.ts';
@@ -8,8 +13,6 @@ import type { Actor } from '../middleware/session.ts';
 import type { EventBus } from '../realtime/event-bus.ts';
 import { recordAndPublish } from '../realtime/event-log.ts';
 import { boardLocked, claimLimit, notClaimed, notFound, notOwner, slotTaken } from './errors.ts';
-
-const SlotId = z.uuid();
 
 type Tx = Parameters<Parameters<Db['orm']['transaction']>[0]>[0];
 
@@ -37,7 +40,7 @@ export async function claimSlot(
   slotId: string,
   input: ClaimInput,
 ): Promise<ClaimResponse> {
-  if (!SlotId.safeParse(slotId).success) throw notFound();
+  if (!IdParam.safeParse(slotId).success) throw notFound();
 
   return recordAndPublish(db, bus, clock, async (tx, record) => {
     await lockEvent(tx, actor);
@@ -95,7 +98,7 @@ export async function releaseSlot(
   actor: Actor,
   slotId: string,
 ): Promise<ClaimResponse> {
-  if (!SlotId.safeParse(slotId).success) throw notFound();
+  if (!IdParam.safeParse(slotId).success) throw notFound();
 
   return recordAndPublish(db, bus, clock, async (tx, record) => {
     await lockEvent(tx, actor);

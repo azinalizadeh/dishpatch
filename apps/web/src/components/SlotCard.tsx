@@ -17,6 +17,8 @@ interface SlotCardProps {
   openState: OpenSlotState;
   /** The viewer may release this claim (their own, or anyone's for the host) right now. */
   canRelease: boolean;
+  /** A claim or release of this slot is in flight: the card is optimistic (70% opacity). */
+  pending: boolean;
   onClaim: (slot: SlotView) => void;
   onRelease: (slot: SlotView) => void;
 }
@@ -38,19 +40,23 @@ export function SlotCard({
   hostId,
   openState,
   canRelease,
+  pending,
   onClaim,
   onRelease,
 }: SlotCardProps) {
   const { plural: label, singular, border } = CATEGORY_LABELS[slot.category];
+  const pop = usePopOnClaim(slot.claimedBy?.id ?? null);
 
   if (slot.claimedBy && slot.dishName) {
     const by = slot.claimedBy.displayName;
     return (
       <article
         aria-label={`${label} slot ${number}: ${slot.dishName}, brought by ${by}`}
+        aria-busy={pending || undefined}
+        onAnimationEnd={pop.done}
         className={`slot-sticker relative flex min-h-24 flex-col justify-between gap-s2 rounded-lg border border-l-8 border-border bg-surface px-s4 py-s3 shadow-e2 ${border} ${
           mine ? 'outline-2 outline-offset-2 outline-primary' : ''
-        }`}
+        } ${pending ? 'opacity-70' : ''} ${pop.active ? 'slot-pop' : ''}`}
       >
         <span className={`text-[17px] leading-[1.25] font-bold ${canRelease ? 'pr-s6' : ''}`}>
           {slot.dishName}
@@ -67,7 +73,7 @@ export function SlotCard({
             ))}
           </span>
         ) : null}
-        {canRelease ? (
+        {canRelease && !pending ? (
           <ReleaseControl
             // A new claim in this slot starts with the popover closed.
             key={`${slot.claimedBy.id}:${slot.dishName}`}
@@ -84,7 +90,7 @@ export function SlotCard({
   return (
     <button
       type="button"
-      disabled={openState !== 'claimable'}
+      disabled={openState !== 'claimable' || pending}
       aria-label={`Claim open ${label} slot ${number}`}
       onClick={() => onClaim(slot)}
       className="flex min-h-24 cursor-pointer flex-col justify-between gap-s2 rounded-lg border-2 border-dashed border-border-ui bg-transparent px-s4 py-s3 text-left text-muted enabled:hover:border-primary enabled:hover:bg-surface enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-55"
@@ -93,6 +99,20 @@ export function SlotCard({
       <span className="text-sm">Open {singular}</span>
     </button>
   );
+}
+
+/**
+ * True from a slot getting a (new) claimant until its pop animation ends, so claims arriving live
+ * pop (03-design.md › board › Interactions) but the board's first paint doesn't.
+ */
+function usePopOnClaim(claimantId: string | null) {
+  const [active, setActive] = useState(false);
+  const previous = useRef(claimantId);
+  useEffect(() => {
+    if (claimantId !== null && claimantId !== previous.current) setActive(true);
+    previous.current = claimantId;
+  }, [claimantId]);
+  return { active, done: () => setActive(false) };
 }
 
 interface ReleaseControlProps {

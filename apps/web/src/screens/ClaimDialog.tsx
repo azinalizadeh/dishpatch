@@ -3,25 +3,30 @@ import {
   DIETARY,
   DIETARY_LABELS,
   type Dietary,
+  LIMITS,
   type Snapshot,
 } from '@dishpatch/shared';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
-import { ApiRequestError, NetworkError } from '../api/client.ts';
-import { useClaimSlot } from '../api/queries.ts';
+import { ApiRequestError, GENERIC_ERROR_COPY, NetworkError } from '../api/client.ts';
+import { BOARD_CHANGED, NETWORK_ERROR_COPY, useClaimSlot } from '../api/queries.ts';
 import { CATEGORY_LABELS } from '../categories.ts';
 import { Banner } from '../components/Banner.tsx';
 import { Button } from '../components/Button.tsx';
 import { Chip } from '../components/Chip.tsx';
 import { Dialog } from '../components/Dialog.tsx';
 import { TextField } from '../components/TextField.tsx';
+import type { ToastRole } from '../components/Toast.tsx';
 
 interface ClaimDialogProps {
   board: Snapshot;
   slotId: string;
   onClose: () => void;
   /** For problems the dialog survives, like a dropped connection (02-user-flows.md › D14). */
-  onToast: (message: string) => void;
+  onToast: (message: string, role?: ToastRole) => void;
 }
+
+/** What the dialog's error banner explains: who won the slot, or the API's own message. */
+type Problem = { takenBy: string } | { message: string };
 
 const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth'];
 
@@ -52,7 +57,7 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
   const [dishName, setDishName] = useState('');
   const [tags, setTags] = useState<Dietary[]>([]);
   const [fieldError, setFieldError] = useState<string>();
-  const [problem, setProblem] = useState<string | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
   const claim = useClaimSlot(board.event.id);
 
   const slot = board.slots.find((s) => s.id === slotId);
@@ -68,9 +73,12 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
   }, [gone, onClose]);
   if (!slot || gone) return null;
 
-  const error = takenBy
-    ? `${takenBy} just claimed this slot. ${pickAnotherHint(board, slotId)}`
-    : problem;
+  // The live board wins: an SSE claim for this slot explains itself even before we submit.
+  const shown: Problem | null = takenBy ? { takenBy } : problem;
+  const error =
+    shown && 'takenBy' in shown
+      ? `${shown.takenBy} just claimed this slot. ${pickAnotherHint(board, slotId)}`
+      : shown?.message;
   const submitting = claim.isPending;
   const { singular, dot } = CATEGORY_LABELS[slot.category];
   const inCategory = board.slots.filter((s) => s.category === slot.category);
@@ -95,19 +103,17 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
         onSuccess: onClose,
         onError: (err) => {
           if (err instanceof NetworkError) {
-            onToast("Couldn't reach Dishpatch — try again.");
+            onToast(NETWORK_ERROR_COPY, 'alert');
           } else if (!(err instanceof ApiRequestError)) {
-            setProblem('Something went wrong on our side. Please try again.');
+            setProblem({ message: GENERIC_ERROR_COPY });
           } else if (err.code === 'SLOT_TAKEN') {
-            setProblem(
-              `${err.claimedBy ?? 'Someone'} just claimed this slot. ${pickAnotherHint(board, slotId)}`,
-            );
+            setProblem({ takenBy: err.claimedBy ?? 'Someone' });
           } else if (err.code === 'VALIDATION') {
             setFieldError(err.fields.dishName ?? err.message);
-          } else if (err.code === 'BOARD_LOCKED' || err.code === 'NOT_FOUND') {
+          } else if (BOARD_CHANGED.has(err.code)) {
             onClose();
           } else {
-            setProblem(err.message);
+            setProblem({ message: err.message });
           }
         },
       },
@@ -138,7 +144,7 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
           id={`${headingId}-dish`}
           label="Dish"
           value={dishName}
-          maxLength={60}
+          maxLength={LIMITS.dishMax}
           autoComplete="off"
           disabled={submitting}
           error={fieldError}

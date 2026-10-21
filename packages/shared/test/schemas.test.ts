@@ -193,6 +193,9 @@ describe('ClaimInput', () => {
       ClaimInput.parse({ dishName: '  Mushroom pie ', dishTags: ['vegan', 'vegan', 'nut_free'] }),
     ).toEqual({ dishName: 'Mushroom pie', dishTags: ['vegan', 'nut_free'] });
     expect(ClaimInput.safeParse({ dishName: 'Pie', dishTags: ['keto'] }).success).toBe(false);
+    expect(
+      ClaimInput.safeParse({ dishName: 'Pie', dishTags: Array(7).fill('vegan') }).success,
+    ).toBe(false);
     expect(ClaimInput.safeParse({ dishName: 'Pie', dishTags: [] }).success).toBe(false);
   });
 });

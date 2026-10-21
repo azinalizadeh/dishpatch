@@ -109,10 +109,12 @@ describe('ClaimDialog', () => {
     expect(
       (within(dialog).getByRole('button', { name: /Vegan/ }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    // The card is on the board straight away (optimistic).
-    expect(
-      screen.getByRole('article', { name: 'Mains slot 2: Mushroom pie, brought by Priya' }),
-    ).toBeTruthy();
+    // The card is on the board straight away, faded while the claim is in flight (optimistic).
+    const card = screen.getByRole('article', {
+      name: 'Mains slot 2: Mushroom pie, brought by Priya',
+    });
+    expect(card.getAttribute('aria-busy')).toBe('true');
+    expect(card.className).toContain('opacity-70');
     // A second click while submitting sends nothing.
     fireEvent.click(busy);
     const mutations = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST');
@@ -202,6 +204,20 @@ describe('ClaimDialog', () => {
     expect(within(card).getByText(/· you/)).toBeTruthy();
     expect(within(card).getByText('Vegan')).toBeTruthy();
   });
+  it('stays open with what was typed while the stream reconnects', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { dialog } = await openDialog();
+    fireEvent.change(within(dialog).getByLabelText('Dish'), { target: { value: 'Pie' } });
+
+    act(() => FakeEventSource.latest().fail());
+    act(() => vi.advanceTimersByTime(2_000));
+
+    expect(screen.getByText(/Connection lost/)).toBeTruthy();
+    expect(
+      (within(screen.getByRole('dialog')).getByLabelText('Dish') as HTMLInputElement).value,
+    ).toBe('Pie');
+    vi.useRealTimers();
+  });
 });
 
 describe('release', () => {
@@ -224,6 +240,27 @@ describe('release', () => {
     fireEvent.click(within(popover).getByRole('button', { name: 'Release' }));
 
     expect(await screen.findByRole('button', { name: 'Claim open Mains slot 1' })).toBeTruthy();
+  });
+
+  it('rolls back on a network error and retries from the toast', async () => {
+    let calls = 0;
+    serve(snapshot([mine, open(2, 1), open(3, 2)]), () => {
+      calls += 1;
+      if (calls === 1) throw new TypeError('Failed to fetch');
+      return Response.json({ slot: open(1, 0), seq: 6 });
+    });
+    renderRoutes(`/events/${eventId}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Release your Mains slot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Release' }));
+
+    const toast = await screen.findByRole('alert');
+    expect(toast.textContent).toContain("Couldn't reach Dishpatch — try again.");
+    expect(screen.getByRole('article', { name: /Garlic green beans/ })).toBeTruthy();
+
+    fireEvent.click(within(toast).getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('button', { name: 'Claim open Mains slot 1' })).toBeTruthy();
+    expect(calls).toBe(2);
   });
 
   it('rolls back and explains a 403 NOT_OWNER', async () => {
@@ -275,6 +312,8 @@ describe('release', () => {
       });
     });
 
-    expect(screen.getByRole('alert').textContent).toBe('Jonah just took the last dessert slot.');
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Jonah just took the last dessert slot.',
+    );
   });
 });

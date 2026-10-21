@@ -232,7 +232,7 @@ async function openMockupBoardAsPriya(
     data: { displayName: 'Priya', dietaryNeeds: ['vegan'] },
   });
   await claimAs(priya.page.request, 'Priya');
-  return { ...priya, eventId };
+  return { ...priya, eventId, join, slotIds, headers };
 }
 
 for (const { suffix, options } of VARIANTS) {
@@ -336,6 +336,33 @@ for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-da
     await dialog.getByRole('button', { name: 'Claim slot' }).click();
     await dialog.getByRole('button', { name: 'Claiming…' }).waitFor();
     await shot(page, `claim-submitting${suffix}`);
+    await context.close();
+  });
+}
+
+for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-dark'))) {
+  test(`board-conflict${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId, join, slotIds, headers } = await openMockupBoardAsPriya(
+      browser,
+      options,
+      baseURL,
+      { withClaims: true },
+    );
+    await page.goto(`/events/${eventId}`);
+    await page.getByText('Live').first().waitFor();
+    // Sam takes the last dessert slot while Priya watches.
+    const sam = await open(browser, options);
+    await sam.page.request.post(join, {
+      headers,
+      data: { displayName: 'Sam B', dietaryNeeds: [] },
+    });
+    await sam.page.request.post(`/api/events/${eventId}/slots/${slotIds[9]}/claim`, {
+      headers,
+      data: { dishName: 'Pistachio baklava', dishTags: ['vegetarian'] },
+    });
+    await sam.context.close();
+    await page.getByRole('alert').filter({ hasText: 'just took the last dessert slot' }).waitFor();
+    await shot(page, `board-conflict${suffix}`);
     await context.close();
   });
 }
