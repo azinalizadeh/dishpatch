@@ -10,14 +10,14 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
 
 - **Stories:** US-01, US-02 · **Screens:** `create`, `share`, `notfound` (design/screens/create*.png, share*.png) · **Endpoints:** `POST /api/events`, `POST /api/host-links/:hostToken/session` · **Entities:** events, participants (host), sessions, slots
 - **Subtasks**
-  - [ ] F1.1 `[domain]` Shared Zod schemas `CreateEventInput`, `SlotCountInput`, `DIETARY`, error-code enum; limits (title 80, location 120, name 40, ≤ 12 per category, 1–40 total). Files: `packages/shared/src/{schemas.ts,dietary.ts,index.ts}`, `packages/shared/test/schemas.test.ts`. Skill: `tdd`
-  - [ ] F1.2 `[db]` Drizzle schema for all five tables + enums + constraints/indexes from 04-architecture.md; generate first migration. Files: `apps/api/src/db/schema.ts`, `apps/api/migrations/0000_init.sql`, `apps/api/test/db-constraints.int.test.ts`. Skill: none
-  - [ ] F1.3 `[domain]` Token helpers `generateToken()`, `hashToken()`; event creation service (one transaction: event + host participant + slots + host session; `expires_at = starts_at + 14 days`). Files: `apps/api/src/domain/{tokens.ts,events.ts}`, `apps/api/test/tokens.test.ts`, `apps/api/test/events.service.int.test.ts`. Skill: `tdd`
-  - [ ] F1.4 `[api]` `POST /api/events` route (Zod `validate()` middleware, 5/hour/IP limit, body limit, sets host cookie, returns links built from `APP_ORIGIN`). Files: `apps/api/src/routes/events.ts`, `apps/api/src/middleware/session.ts`, `apps/api/test/events.int.test.ts`. Skill: `tdd`
-  - [ ] F1.5 `[api]` `POST /api/host-links/:hostToken/session` (10/min/IP; 404 on miss). Files: `apps/api/src/routes/host-links.ts`, `apps/api/test/host-links.int.test.ts`. Skill: `tdd`
-  - [ ] F1.6 `[ui]` `CreateScreen` with TextField, Stepper, validation via shared schema, error/rate-limit/offline banners. Files: `apps/web/src/screens/CreateScreen.tsx`, `apps/web/src/components/{TextField,Stepper,Banner,Button}.tsx`, `apps/web/test/CreateScreen.test.tsx`. Skill: `design-parity` (custom) after the screen renders
-  - [ ] F1.7 `[ui]` `ShareScreen` (LinkBox + copy + fallback, one-time host link held in memory, `beforeunload` guard) and `HostLinkScreen` (`/h/:token` exchange → `replaceState` → board, or notfound). Files: `apps/web/src/screens/{ShareScreen,HostLinkScreen,NotFoundScreen}.tsx`, `apps/web/src/components/{LinkBox,Toast}.tsx`, `apps/web/test/ShareScreen.test.tsx`. Skill: `design-parity`
-  - [ ] F1.8 `[test]` E2E create → share → board; host link on a second browser context. Files: `e2e/specs/create-board.spec.ts`. Skill: none
+  - [x] F1.1 `[domain]` Shared Zod schemas `CreateEventInput`, `SlotCountInput`, `DIETARY`, error-code enum; limits (title 80, location 120, name 40, ≤ 12 per category, 1–40 total). Files: `packages/shared/src/{schemas.ts,dietary.ts,index.ts}`, `packages/shared/test/schemas.test.ts`. Skill: `tdd`
+  - [x] F1.2 `[db]` Drizzle schema for all five tables + enums + constraints/indexes from 04-architecture.md; generate first migration. Files: `apps/api/src/db/schema.ts`, `apps/api/migrations/0000_init.sql`, `apps/api/test/db-constraints.int.test.ts`. Skill: none
+  - [x] F1.3 `[domain]` Token helpers `generateToken()`, `hashToken()`; event creation service (one transaction: event + host participant + slots + host session; `expires_at = starts_at + 14 days`). Files: `apps/api/src/domain/{tokens.ts,events.ts}`, `apps/api/test/tokens.test.ts`, `apps/api/test/events.service.int.test.ts`. Skill: `tdd`
+  - [x] F1.4 `[api]` `POST /api/events` route (Zod `validate()` middleware, 5/hour/IP limit, body limit, sets host cookie, returns links built from `APP_ORIGIN`). Files: `apps/api/src/routes/events.ts`, `apps/api/src/middleware/session.ts`, `apps/api/test/events.int.test.ts`. Skill: `tdd`
+  - [x] F1.5 `[api]` `POST /api/host-links/:hostToken/session` (10/min/IP; 404 on miss). Files: `apps/api/src/routes/host-links.ts`, `apps/api/test/host-links.int.test.ts`. Skill: `tdd`
+  - [x] F1.6 `[ui]` `CreateScreen` with TextField, Stepper, validation via shared schema, error/rate-limit/offline banners. Files: `apps/web/src/screens/CreateScreen.tsx`, `apps/web/src/components/{TextField,Stepper,Banner,Button}.tsx`, `apps/web/test/CreateScreen.test.tsx`. Skill: `design-parity` (custom) after the screen renders
+  - [x] F1.7 `[ui]` `ShareScreen` (LinkBox + copy + fallback, one-time host link held in memory, `beforeunload` guard) and `HostLinkScreen` (`/h/:token` exchange → `replaceState` → board, or notfound). Files: `apps/web/src/screens/{ShareScreen,HostLinkScreen,NotFoundScreen}.tsx`, `apps/web/src/components/{LinkBox,Toast}.tsx`, `apps/web/test/ShareScreen.test.tsx`. Skill: `design-parity`
+  - [x] F1.8 `[test]` E2E create → share → board; host link on a second browser context. Files: `e2e/specs/create-board.spec.ts`. Skill: none
 - **Tests**
   - Unit: `schemas.test.ts › CreateEventInput accepts the default Friendsgiving payload` — parses the fixture without changes.
   - Unit: `schemas.test.ts › rejects title over 80 characters` — error path `title`.
@@ -43,18 +43,18 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - D2/D3 spam and oversized bodies → 5/hour/IP, 16 KB limit, schema max lengths.
   - A10 → event creation is one transaction; failure leaves no partial board (`events.service.int.test.ts › rolls back everything if slot insert fails`).
 - **Definition of Done**
-  - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
-  - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
-  - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
-  - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
-  - [ ] Lint/format/typecheck clean; no new warnings
-  - [ ] No secrets in code or logs; errors handled with user-friendly messages
-  - [ ] README/docs updated if behavior or setup changed
-  - [ ] Any skill used for this feature is logged in skills/usage-log.md
+  - [x] All subtasks done; acceptance criteria of linked stories pass
+  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [x] Security controls for this feature implemented and tested (at least one negative/abuse test)
+  - [x] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
+  - [x] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
+  - [x] Lint/format/typecheck clean; no new warnings
+  - [x] No secrets in code or logs; errors handled with user-friendly messages
+  - [x] README/docs updated if behavior or setup changed
+  - [x] Any skill used for this feature is logged in skills/usage-log.md
   - Feature-specific:
-  - [ ] The raw host and invite tokens appear only in the 201 response body — not in DB rows, logs, localStorage or sessionStorage (checked by test + manual DevTools look)
-  - [ ] Migration `0000_init.sql` is committed and `pnpm db:migrate` runs cleanly on an empty Postgres 18.6
+  - [x] The raw host and invite tokens appear only in the 201 response body — not in DB rows, logs, localStorage or sessionStorage (checked by test + manual DevTools look)
+  - [x] Migration `0000_init.sql` is committed and `pnpm db:migrate` runs cleanly on an empty Postgres 18.6
 
 ---
 

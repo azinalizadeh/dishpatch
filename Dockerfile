@@ -34,6 +34,7 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/shared/src packages/shared/src
 COPY apps/api/package.json apps/api/
 COPY apps/api/src apps/api/src
+COPY apps/api/migrations apps/api/migrations
 COPY --from=build /app/apps/web/dist apps/web/dist
 USER nonroot
 EXPOSE 3000

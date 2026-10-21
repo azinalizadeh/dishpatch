@@ -1,13 +1,33 @@
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, inject } from 'vitest';
+import { afterAll, beforeAll, beforeEach, inject } from 'vitest';
+import type { AppDeps } from '../../src/app.ts';
 import { createDb, type Db } from '../../src/db/client.ts';
+import { withDatabase } from './postgres-global-setup.ts';
 import { testApp } from './test-app.ts';
 
-/** A real Postgres connection to the run's Testcontainers database, closed after the file. */
+/**
+ * A migrated database of this test file's own, cloned from the run's template, so files can run
+ * in parallel. Every table is truncated before each test.
+ */
 export function useTestDb(): Db {
-  const db = createDb(inject('databaseUrl'));
+  const adminUrl = inject('databaseUrl');
+  const name = `t_${randomBytes(6).toString('hex')}`;
+  const db = createDb(withDatabase(adminUrl, name));
+
+  beforeAll(async () => {
+    const admin = createDb(adminUrl);
+    try {
+      await admin.sql`create database ${admin.sql(name)} template ${admin.sql(inject('templateDatabase'))}`;
+    } finally {
+      await admin.sql.end({ timeout: 5 });
+    }
+  });
+  beforeEach(async () => {
+    await db.sql`truncate events, participants, sessions, slots, event_log restart identity cascade`;
+  });
   afterAll(() => db.sql.end({ timeout: 5 }));
   return db;
 }
@@ -22,6 +42,6 @@ export function fakeSpaDir(): string {
   return dir;
 }
 
-export function intApp(db: Db) {
-  return testApp({ db, staticDir: fakeSpaDir() });
+export function intApp(db: Db, overrides: Partial<AppDeps> = {}) {
+  return testApp({ db, staticDir: fakeSpaDir(), ...overrides });
 }

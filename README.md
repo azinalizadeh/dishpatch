@@ -58,6 +58,13 @@ Existing tools: [Grasshopper Signup](https://grasshoppersignup.com/potluck-signu
 5. **40–50 s** — Priya goes offline (DevTools), Mina claims drinks, Priya comes back: banner clears and the missed claim appears.
 6. **50–60 s** — Mina locks the board; Priya sees the locked banner. Flash dark mode, end on the full board.
 
+## Development notes
+
+- **Database:** the schema lives in `apps/api/src/db/schema.ts`; migrations are generated with `pnpm db:generate` and committed under `apps/api/migrations/`. `pnpm db:migrate` applies them to the database in `.env`; the API container also applies them on boot (single instance).
+- **Integration tests** clone one migrated template database per test file inside a single Testcontainers Postgres, so files run in parallel.
+- **E2E:** start the stack with the CI override (`docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait`). It sets `TRUST_PROXY=true` so each Playwright test can present its own client IP and stay under the per-IP create limit (5 boards/hour). Never set `TRUST_PROXY=true` outside a known proxy.
+- **Host links** are shown once on the share screen and kept only in memory; reloading the share screen goes straight to the board.
+
 ## Package contents
 
 | File | Role |

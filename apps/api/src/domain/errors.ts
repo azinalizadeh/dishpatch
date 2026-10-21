@@ -14,3 +14,12 @@ export class DomainError extends Error {
 }
 
 export const notFound = () => new DomainError(404, 'NOT_FOUND', "We couldn't find that.");
+
+export const validationFailed = (fields: Record<string, string>) =>
+  new DomainError(400, 'VALIDATION', 'Some fields need fixing.', { fields });
+
+export const badOrigin = () =>
+  new DomainError(403, 'BAD_ORIGIN', "This request didn't come from Dishpatch.");
+
+export const rateLimited = (message: string, retryAfterSeconds: number) =>
+  new DomainError(429, 'RATE_LIMITED', message, { retryAfterSeconds });

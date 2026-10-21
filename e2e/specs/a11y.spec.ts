@@ -1,0 +1,73 @@
+import AxeBuilder from '@axe-core/playwright';
+import type { Page } from '@playwright/test';
+import { expect, test } from '../fixtures.ts';
+
+// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound).
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
+
+async function expectNoSeriousViolations(page: Page) {
+  const { violations } = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+  const serious = violations
+    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+  expect(serious).toEqual([]);
+}
+
+async function fillCreateForm(page: Page) {
+  await page.getByLabel('Event name').fill("Friendsgiving at Mina's");
+  await page.getByLabel('Date & time').fill('2099-11-21T18:00');
+  await page.getByLabel('Your name').fill('Mina');
+}
+
+test.describe('accessibility', () => {
+  for (const scheme of ['light', 'dark'] as const) {
+    test.describe(scheme, () => {
+      test.use({ colorScheme: scheme });
+
+      test('create, create error, share and notfound have no serious violations', async ({
+        page,
+      }) => {
+        await page.goto('/');
+        await expectNoSeriousViolations(page);
+
+        await page.getByRole('button', { name: 'Create board' }).click();
+        await expect(page.getByRole('alert')).toBeFocused();
+        await expectNoSeriousViolations(page);
+
+        await fillCreateForm(page);
+        await page.getByRole('button', { name: 'Create board' }).click();
+        await expect(page.getByText('Board created')).toBeVisible();
+        await expectNoSeriousViolations(page);
+
+        await page.goto('/no/such/page');
+        await expect(page.getByRole('heading', { name: 'Nothing on this plate' })).toBeFocused();
+        await expectNoSeriousViolations(page);
+      });
+    });
+  }
+
+  test('the create form works from the keyboard alone', async ({ page }) => {
+    await page.goto('/');
+    // The native date picker has its own keyboard UI; fill it directly, then use only keys.
+    await page.getByLabel('Date & time').fill('2099-11-21T18:00');
+    await page.getByLabel('Event name').focus();
+    await page.keyboard.type("Friendsgiving at Mina's");
+    await page.getByLabel('Your name').focus();
+    await page.keyboard.type('Mina');
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Fewer mains' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('spinbutton', { name: 'Mains' })).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(page.getByRole('spinbutton', { name: 'Mains' })).toHaveAttribute(
+      'aria-valuenow',
+      '4',
+    );
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByLabel('Your name')).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/share$/);
+    await expect(page.getByText('13 slots')).toBeVisible();
+  });
+});
