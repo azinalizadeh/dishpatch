@@ -8,10 +8,25 @@ interface StepperProps {
   max: number;
   onChange: (value: number) => void;
   disabled?: boolean;
+  /** Button labels; default "Fewer {noun}" / "More {noun}". */
+  decreaseLabel?: string;
+  increaseLabel?: string;
+  /** Why − is off at the minimum, e.g. "Remove a claim first" (shown as a tooltip). */
+  minReason?: string | undefined;
 }
 
 /** −/+ count control; the value is a spinbutton that also answers ArrowUp/ArrowDown. */
-export function Stepper({ noun, value, min, max, onChange, disabled = false }: StepperProps) {
+export function Stepper({
+  noun,
+  value,
+  min,
+  max,
+  onChange,
+  disabled = false,
+  decreaseLabel = `Fewer ${noun}`,
+  increaseLabel = `More ${noun}`,
+  minReason,
+}: StepperProps) {
   const canDecrease = !disabled && value > min;
   const canIncrease = !disabled && value < max;
 
@@ -30,7 +45,8 @@ export function Stepper({ noun, value, min, max, onChange, disabled = false }: S
       <button
         type="button"
         className={button}
-        aria-label={`Fewer ${noun}`}
+        aria-label={decreaseLabel}
+        title={!disabled && value <= min ? minReason : undefined}
         disabled={!canDecrease}
         onClick={() => onChange(value - 1)}
         onKeyDown={onKeyDown}
@@ -53,7 +69,7 @@ export function Stepper({ noun, value, min, max, onChange, disabled = false }: S
       <button
         type="button"
         className={button}
-        aria-label={`More ${noun}`}
+        aria-label={increaseLabel}
         disabled={!canIncrease}
         onClick={() => onChange(value + 1)}
         onKeyDown={onKeyDown}

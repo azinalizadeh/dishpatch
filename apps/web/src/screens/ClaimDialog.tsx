@@ -4,6 +4,7 @@ import {
   DIETARY_LABELS,
   type Dietary,
   LIMITS,
+  previewCoverage,
   type Snapshot,
 } from '@dishpatch/shared';
 import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ import { Chip } from '../components/Chip.tsx';
 import { Dialog } from '../components/Dialog.tsx';
 import { TextField } from '../components/TextField.tsx';
 import type { ToastRole } from '../components/Toast.tsx';
+import { previewText } from '../coverage-copy.ts';
 
 interface ClaimDialogProps {
   board: Snapshot;
@@ -50,6 +52,7 @@ function pickAnotherHint(board: Snapshot, slotId: string): string {
  * The claim dialog (F4.6, 03-design.md › claim). Submitting shows the card on the board at once;
  * a 409 rolls it back and explains who won. If the stream reports someone else's claim on this
  * slot while the dialog is open, it switches to the same error without the user submitting.
+ * As tags are picked, a banner previews which dietary gap the dish would close (F5.4).
  */
 export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProps) {
   const headingId = useId();
@@ -82,6 +85,7 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
   const submitting = claim.isPending;
   const { singular, dot } = CATEGORY_LABELS[slot.category];
   const inCategory = board.slots.filter((s) => s.category === slot.category);
+  const [improves] = previewCoverage(board, { slotId, dishTags: tags });
   const toggle = (tag: Dietary) =>
     setTags((current) =>
       current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag],
@@ -166,6 +170,12 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
             ))}
           </div>
         </fieldset>
+
+        {improves && !error ? (
+          <Banner tone="ok" icon="✓" role="status">
+            {previewText(improves, slot.category === 'main')}
+          </Banner>
+        ) : null}
 
         <div className="flex flex-col-reverse gap-s3 tablet:flex-row tablet:justify-end">
           <Button variant="secondary" onClick={onClose}>

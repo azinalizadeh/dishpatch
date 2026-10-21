@@ -1,12 +1,14 @@
 import {
   CATEGORIES,
+  computeCoverage,
   DIETARY_LABELS,
   type SequencedBoardEvent,
   type SlotView,
   type Snapshot,
+  topHint,
 } from '@dishpatch/shared';
-import { useCallback, useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { ApiRequestError, NetworkError } from '../api/client.ts';
 import {
   BOARD_CHANGED,
@@ -22,10 +24,12 @@ import { Banner } from '../components/Banner.tsx';
 import { Button, ButtonLink } from '../components/Button.tsx';
 import { CategoryGroup, CategoryGroupSkeleton } from '../components/CategoryGroup.tsx';
 import { ConnectionIndicator } from '../components/ConnectionIndicator.tsx';
+import { CoverageMeter } from '../components/CoverageMeter.tsx';
 import { Skeleton } from '../components/Skeleton.tsx';
 import type { OpenSlotState } from '../components/SlotCard.tsx';
 import { Tag } from '../components/Tag.tsx';
 import { Toast, type ToastAction, type ToastRole } from '../components/Toast.tsx';
+import { coverageSummary } from '../coverage-copy.ts';
 import { formatWhen } from '../format.ts';
 import { ClaimDialog } from './ClaimDialog.tsx';
 import { NotFoundScreen } from './NotFoundScreen.tsx';
@@ -35,7 +39,8 @@ const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
 /**
  * The live board (F3.6, 03-design.md › board): slot groups and "Who's coming", kept current by
  * the stream. States: loading, empty, offline (claims paused), locked (claims closed), error.
- * Claims (F4) open the claim dialog at `?claim=<slotId>`; coverage arrives with F5.
+ * Claims (F4) open the claim dialog at `?claim=<slotId>`. Coverage (F5) is recomputed from the
+ * live slots with the shared rules, so it follows claims (optimistic ones too) as they happen.
  */
 export function BoardScreen() {
   const { eventId = '' } = useParams();
@@ -201,6 +206,13 @@ function LiveBoard({
   const { event, slots, participants, me } = board;
   const host = participants.find((p) => p.role === 'host');
   const claimed = slots.filter((s) => s.claimedBy).length;
+  const coverage = useMemo(() => computeCoverage(participants, slots), [participants, slots]);
+  const hint = topHint(coverage);
+  const summary = coverageSummary(coverage);
+  // The empty board has its own banner; hints start once something is on the board.
+  const showCoverageNudges = claimed > 0;
+  const hintText =
+    hint && showCoverageNudges ? `${DIETARY_LABELS[hint.need]} would help` : undefined;
   const offline = connection === 'reconnecting';
   let openState: OpenSlotState = 'claimable';
   if (offline) openState = 'paused';
@@ -247,11 +259,27 @@ function LiveBoard({
           </p>
         </div>
         {me.role === 'host' ? (
-          <ButtonLink variant="secondary" to="host" relative="path" className="max-tablet:hidden">
+          <ButtonLink variant="secondary" to="host" relative="path">
             Host settings
           </ButtonLink>
         ) : null}
       </div>
+
+      {summary && showCoverageNudges ? (
+        // Mobile stands in for the sidebar card with one line (03-design.md › board › Layout).
+        <Link
+          to="coverage"
+          relative="path"
+          className="mb-s4 flex items-start gap-s3 rounded-md bg-warn-bg px-s4 py-s3 text-sm/[1.5] font-semibold text-warn-ink no-underline tablet:hidden"
+        >
+          <span aria-hidden="true" className="text-lg leading-[1.2]">
+            ⚠
+          </span>
+          <span>
+            {summary}. <u>See coverage</u>
+          </span>
+        </Link>
+      ) : null}
 
       <div className="grid items-start gap-s5 tablet:grid-cols-[1fr_340px]">
         <div className="flex flex-col gap-s5">
@@ -275,12 +303,33 @@ function LiveBoard({
                 onClaim={onClaim}
                 onRelease={onRelease}
                 pendingSlotIds={pendingSlotIds}
+                hint={hint?.categories === 'any' || category === 'main' ? hintText : undefined}
               />
             );
           })}
         </div>
 
-        <aside aria-label="Guests" className="flex flex-col gap-s4 max-tablet:hidden">
+        <aside
+          aria-label="Dietary coverage and guests"
+          className="flex flex-col gap-s4 max-tablet:hidden"
+        >
+          <section aria-labelledby="coverage-h" className={card}>
+            <h2 id="coverage-h" className="text-lg leading-[1.3]">
+              Dietary coverage
+            </h2>
+            <p className="mb-s4 text-sm text-muted">
+              Based on what {participants.length} {participants.length === 1 ? 'person' : 'guests'}{' '}
+              told us.
+            </p>
+            <CoverageMeter coverage={coverage} variant="compact" />
+            <Link
+              to="coverage"
+              relative="path"
+              className="mt-s3 inline-flex min-h-10 items-center font-bold text-primary no-underline"
+            >
+              Details <span aria-hidden="true">&nbsp;→</span>
+            </Link>
+          </section>
           <div className={card}>
             <h2 className="text-lg leading-[1.3]">
               Who's coming{' '}

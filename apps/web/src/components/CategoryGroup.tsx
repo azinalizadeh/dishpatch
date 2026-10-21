@@ -15,6 +15,8 @@ interface CategoryGroupProps {
   onClaim: (slot: SlotView) => void;
   onRelease: (slot: SlotView) => void;
   pendingSlotIds: ReadonlySet<string>;
+  /** Hint chip for this group's open slots, if the top coverage need wants them. */
+  hint?: string | undefined;
 }
 
 const slotGrid = 'grid grid-cols-2 gap-s3 tablet:grid-cols-3';
@@ -31,6 +33,7 @@ export function CategoryGroup({
   onClaim,
   onRelease,
   pendingSlotIds,
+  hint,
 }: CategoryGroupProps) {
   const { plural, dot } = CATEGORY_LABELS[category];
   const claimed = slots.filter((s) => s.claimedBy).length;
@@ -56,6 +59,7 @@ export function CategoryGroup({
               openState={openState}
               canRelease={releasable && (mine || isHost)}
               pending={pendingSlotIds.has(slot.id)}
+              hint={hint}
               onClaim={onClaim}
               onRelease={onRelease}
             />

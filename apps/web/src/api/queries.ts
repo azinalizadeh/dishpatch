@@ -1,4 +1,14 @@
-import { type ClaimInput, ClaimResponse, type SlotView, Snapshot } from '@dishpatch/shared';
+import {
+  AddSlotResponse,
+  type Category,
+  type ClaimInput,
+  ClaimResponse,
+  RotateInviteResponse,
+  SeqResponse,
+  type SlotView,
+  Snapshot,
+  UpdateEventResponse,
+} from '@dishpatch/shared';
 import {
   type QueryClient,
   useMutation,
@@ -6,7 +16,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { ApiRequestError, deleteJson, getJson, postJson } from './client.ts';
+import { ApiRequestError, deleteJson, getJson, NoContent, patchJson, postJson } from './client.ts';
 
 export const boardKey = (eventId: string) => ['board', eventId] as const;
 
@@ -145,4 +155,81 @@ export function useReleaseSlot(eventId: string) {
     ({ slot }, signal) => deleteJson(claimPath(eventId, slot.id), ClaimResponse, signal),
     ({ slot }) => ({ ...slot, claimedBy: null, dishName: null, dishTags: [] }),
   );
+}
+
+const eventPath = (eventId: string) => `/api/events/${encodeURIComponent(eventId)}`;
+
+/** Changes the cached board without touching `seq`, so the stream's own event still applies. */
+function patchBoard(queryClient: QueryClient, eventId: string, update: (b: Snapshot) => Snapshot) {
+  queryClient.setQueryData<Snapshot>(boardKey(eventId), (board) => (board ? update(board) : board));
+}
+
+/**
+ * API #9 with an optimistic switch: the board flips at once and flips back if the PATCH fails
+ * (unless the stream has meanwhile brought a newer value).
+ */
+export function useSetLocked(eventId: string) {
+  const queryClient = useQueryClient();
+  const setLocked = (locked: boolean) =>
+    patchBoard(queryClient, eventId, (b) => ({ ...b, event: { ...b.event, locked } }));
+  return useMutation<UpdateEventResponse, Error, boolean, { previous: boolean | undefined }>({
+    mutationFn: (locked) => patchJson(eventPath(eventId), UpdateEventResponse, { locked }),
+    onMutate: (locked) => {
+      const previous = queryClient.getQueryData<Snapshot>(boardKey(eventId))?.event.locked;
+      setLocked(locked);
+      return { previous };
+    },
+    onError: (_err, locked, context) => {
+      const current = queryClient.getQueryData<Snapshot>(boardKey(eventId))?.event.locked;
+      if (context?.previous !== undefined && current === locked) setLocked(context.previous);
+    },
+  });
+}
+
+/** API #10. The new slot shows as soon as the API answers; the stream's `slot.added` is a no-op. */
+export function useAddSlot(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<AddSlotResponse, Error, Category>({
+    mutationFn: (category) =>
+      postJson(`${eventPath(eventId)}/slots`, AddSlotResponse, { category }),
+    onSuccess: ({ slot }) =>
+      patchBoard(queryClient, eventId, (b) =>
+        b.slots.some((s) => s.id === slot.id) ? b : { ...b, slots: [...b.slots, slot] },
+      ),
+  });
+}
+
+/** API #11, the same way: gone from the cache on success. */
+export function useRemoveSlot(eventId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<SeqResponse, Error, SlotView>({
+    mutationFn: (slot) =>
+      deleteJson(`${eventPath(eventId)}/slots/${encodeURIComponent(slot.id)}`, SeqResponse),
+    onSuccess: (_res, slot) =>
+      patchBoard(queryClient, eventId, (b) => ({
+        ...b,
+        slots: b.slots.filter((s) => s.id !== slot.id),
+      })),
+    onError: (err) => {
+      // Someone claimed it meanwhile, or it's already gone: reload the board.
+      if (err instanceof ApiRequestError && err.status !== 429) {
+        void queryClient.invalidateQueries({ queryKey: boardKey(eventId) });
+      }
+    },
+  });
+}
+
+/** API #12: a fresh invite link; the old one stops working. */
+export function useRotateInvite(eventId: string) {
+  return useMutation<RotateInviteResponse, Error, void>({
+    mutationFn: () => postJson(`${eventPath(eventId)}/invite/rotate`, RotateInviteResponse),
+  });
+}
+
+/** API #13: deletes the board for everyone once the typed title matches. */
+export function useDeleteBoard(eventId: string) {
+  return useMutation<void, Error, string>({
+    mutationFn: (confirmTitle) =>
+      deleteJson(eventPath(eventId), NoContent, undefined, { confirmTitle }),
+  });
 }

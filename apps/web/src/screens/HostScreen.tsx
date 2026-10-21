@@ -1,5 +1,353 @@
-import { Placeholder } from '../components/Placeholder.tsx';
+import { CATEGORIES, type Category, LIMITS, type Snapshot } from '@dishpatch/shared';
+import { type FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router';
+import { ApiRequestError, NetworkError } from '../api/client.ts';
+import {
+  useAddSlot,
+  useDeleteBoard,
+  useRemoveSlot,
+  useRotateInvite,
+  useSetLocked,
+} from '../api/queries.ts';
+import { useBoardStream } from '../api/use-board-stream.ts';
+import { CATEGORY_LABELS } from '../categories.ts';
+import { useShell } from '../components/AppShell.tsx';
+import { Banner } from '../components/Banner.tsx';
+import { Button } from '../components/Button.tsx';
+import { ConnectionIndicator } from '../components/ConnectionIndicator.tsx';
+import { Dialog } from '../components/Dialog.tsx';
+import { LinkBox } from '../components/LinkBox.tsx';
+import { Skeleton } from '../components/Skeleton.tsx';
+import { Stepper } from '../components/Stepper.tsx';
+import { Switch } from '../components/Switch.tsx';
+import { TextField } from '../components/TextField.tsx';
+import { Toast, type ToastAction, type ToastRole } from '../components/Toast.tsx';
+import { BackToBoard } from './CoverageScreen.tsx';
+import { NotFoundScreen } from './NotFoundScreen.tsx';
 
+const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
+const SAVE_FAILED = "Couldn't save — try again";
+
+/** Toast copy for a failed host action: the API's own message, or "couldn't save". */
+function failureCopy(err: unknown): string {
+  if (err instanceof ApiRequestError && err.code !== 'INTERNAL') return err.message;
+  return SAVE_FAILED;
+}
+
+interface ToastState {
+  message: string;
+  role: ToastRole;
+  action?: ToastAction | undefined;
+}
+
+/**
+ * Host settings (F6.4, 03-design.md › host): lock, new invite link, slot counts and delete.
+ * Guests who open this address go back to the board; the API refuses them anyway (E1).
+ */
 export function HostScreen() {
-  return <Placeholder title="Host settings" milestone="M6" />;
+  const { eventId = '' } = useParams();
+  const { query, board, connection, presence } = useBoardStream(eventId);
+  const { setHeaderEnd } = useShell();
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const showToast = useCallback(
+    (message: string, role: ToastRole = 'status', action?: ToastAction) =>
+      setToast({ message, role, action }),
+    [],
+  );
+  const dismissToast = useCallback(() => setToast(null), []);
+
+  useEffect(() => {
+    setHeaderEnd(<ConnectionIndicator connection={connection} presence={presence} />);
+  }, [setHeaderEnd, connection, presence]);
+  useEffect(() => () => setHeaderEnd(null), [setHeaderEnd]);
+
+  if (connection === 'notfound') return <NotFoundScreen />;
+  if (board && board.me.role !== 'host') return <Navigate to=".." relative="path" replace />;
+
+  let content = (
+    <div role="status" aria-label="Loading host settings" className="flex flex-col gap-s4">
+      <Skeleton className="h-24 rounded-lg" />
+      <Skeleton className="h-24 rounded-lg" />
+      <Skeleton className="h-48 rounded-lg" />
+    </div>
+  );
+  if (board) {
+    content = <HostSettings board={board} onToast={showToast} />;
+  } else if (query.isError) {
+    content = (
+      <Banner
+        tone="error"
+        icon="!"
+        role="alert"
+        action={
+          <Button variant="ghost" size="sm" onClick={() => void query.refetch()}>
+            Try again
+          </Button>
+        }
+      >
+        Something broke on our side. Please try again.
+      </Banner>
+    );
+  }
+
+  return (
+    <section aria-labelledby="host-h" className="mx-auto max-w-[760px] p-s4 tablet:p-s6">
+      <BackToBoard />
+      <h1 id="host-h" className="mb-s5 text-[30px] leading-[1.1] tablet:text-[40px]">
+        Host settings
+      </h1>
+      {content}
+      <Toast
+        message={toast?.message ?? null}
+        role={toast?.role}
+        action={toast?.action}
+        onDismiss={dismissToast}
+      />
+    </section>
+  );
+}
+
+type OnToast = (message: string, role?: ToastRole, action?: ToastAction) => void;
+
+function HostSettings({ board, onToast }: { board: Snapshot; onToast: OnToast }) {
+  const eventId = board.event.id;
+  const setLocked = useSetLocked(eventId);
+  const rotate = useRotateInvite(eventId);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const toggleLock = (locked: boolean) =>
+    setLocked.mutate(locked, {
+      onSuccess: () => onToast(locked ? 'Board locked' : 'Board unlocked'),
+      onError: (err) => onToast(failureCopy(err), 'alert'),
+    });
+
+  const copy = (url: string) => () => {
+    void navigator.clipboard.writeText(url).then(
+      () => onToast('Invite link copied'),
+      () => onToast("Couldn't copy — select the link and copy it yourself.", 'alert'),
+    );
+  };
+
+  const newLink = () =>
+    rotate.mutate(undefined, {
+      onSuccess: ({ inviteUrl: url }) => {
+        setInviteUrl(url);
+        onToast('New invite link ready', 'status', { label: 'Copy', onClick: copy(url) });
+      },
+      onError: (err) => onToast(failureCopy(err), 'alert'),
+    });
+
+  return (
+    <div className="flex flex-col gap-s4">
+      <div className={`${card} flex items-center justify-between gap-s4`}>
+        <div>
+          <h2 className="text-lg leading-[1.3]">Lock the board</h2>
+          <p className="text-sm text-muted">
+            Stops new claims and releases. Guests can still see the board.
+          </p>
+        </div>
+        <Switch
+          label="Lock the board"
+          checked={board.event.locked}
+          disabled={setLocked.isPending}
+          onChange={toggleLock}
+        />
+      </div>
+
+      <div className={`${card} flex flex-col gap-s4`}>
+        <div className="flex flex-wrap items-center justify-between gap-s4">
+          <div>
+            <h2 className="text-lg leading-[1.3]">Make a new invite link</h2>
+            <p className="text-sm text-muted">
+              The old link stops working. People who already joined stay on the board.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            loading={rotate.isPending}
+            loadingLabel="Making link…"
+            onClick={newLink}
+          >
+            New link
+          </Button>
+        </div>
+        {inviteUrl ? (
+          <LinkBox
+            label="New invite link"
+            url={inviteUrl}
+            copyLabel="Copy the new invite link"
+            onCopied={() => onToast('Invite link copied')}
+            onCopyFailed={() => onToast("Couldn't copy — the full link is selected.", 'alert')}
+          />
+        ) : null}
+      </div>
+
+      <SlotSettings board={board} onToast={onToast} />
+
+      <div className={`${card} flex flex-wrap items-center justify-between gap-s4 border-error`}>
+        <div>
+          <h2 className="text-lg leading-[1.3]">Delete this board</h2>
+          <p className="text-sm text-muted">
+            Removes the board, every claim and every guest name now. This can't be undone.
+          </p>
+        </div>
+        <Button variant="danger" onClick={() => setConfirmingDelete(true)}>
+          Delete board
+        </Button>
+      </div>
+
+      {confirmingDelete ? (
+        <DeleteDialog board={board} onClose={() => setConfirmingDelete(false)} onToast={onToast} />
+      ) : null}
+    </div>
+  );
+}
+
+/** Per-category steppers: + adds an open slot, − removes the last open one (never a claimed one). */
+function SlotSettings({ board, onToast }: { board: Snapshot; onToast: OnToast }) {
+  const eventId = board.event.id;
+  const add = useAddSlot(eventId);
+  const remove = useRemoveSlot(eventId);
+  const busy = add.isPending || remove.isPending;
+  const total = board.slots.length;
+
+  const change = (category: Category, next: number, current: number) => {
+    const onError = (err: unknown) => onToast(failureCopy(err), 'alert');
+    if (next > current) {
+      add.mutate(category, { onError });
+      return;
+    }
+    const open = board.slots
+      .filter((s) => s.category === category && !s.claimedBy)
+      .sort((a, b) => b.position - a.position);
+    const [last] = open;
+    if (last) remove.mutate(last, { onError });
+  };
+
+  return (
+    <div className={card}>
+      <h2 className="text-lg leading-[1.3]">Slots</h2>
+      <p className="text-sm text-muted">
+        Add open slots or remove empty ones. Remove a claim first to delete a claimed slot.
+      </p>
+      <ul className="mt-s3 flex flex-col">
+        {CATEGORIES.map((category) => {
+          const { plural, singular, dot } = CATEGORY_LABELS[category];
+          const inCategory = board.slots.filter((s) => s.category === category);
+          const claimed = inCategory.filter((s) => s.claimedBy).length;
+          const count = inCategory.length;
+          const max = Math.min(LIMITS.slotsPerCategoryMax, count + LIMITS.slotsTotalMax - total);
+          return (
+            <li
+              key={category}
+              className="flex items-center justify-between gap-s3 border-b border-dashed border-border py-s3 last:border-b-0"
+            >
+              <span className="flex items-center gap-s2 font-bold">
+                <span aria-hidden="true" className={`size-3 rounded-[4px] ${dot}`} />
+                {plural}
+                {claimed > 0 ? (
+                  <span className="text-sm font-semibold text-muted">· {claimed} claimed</span>
+                ) : null}
+              </span>
+              <Stepper
+                noun={plural.toLowerCase()}
+                value={count}
+                min={claimed}
+                max={max}
+                disabled={busy}
+                decreaseLabel={`Remove an empty ${singular} slot`}
+                increaseLabel={`Add a ${singular} slot`}
+                minReason={claimed > 0 ? 'Remove a claim first' : undefined}
+                onChange={(next) => change(category, next, count)}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** The typed confirmation (03-design.md › host/confirm): Delete stays off until the name matches. */
+function DeleteDialog({
+  board,
+  onClose,
+  onToast,
+}: {
+  board: Snapshot;
+  onClose: () => void;
+  onToast: OnToast;
+}) {
+  const headingId = useId();
+  const fieldRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const remove = useDeleteBoard(board.event.id);
+  const [typed, setTyped] = useState('');
+  const [error, setError] = useState<string>();
+  const { title } = board.event;
+  const matches = typed === title;
+  const guests = board.participants.length;
+  const claims = board.slots.filter((s) => s.claimedBy).length;
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!matches || remove.isPending) return;
+    remove.mutate(typed, {
+      onSuccess: () => navigate('/', { replace: true, state: { toast: 'Board deleted' } }),
+      onError: (err) => {
+        if (err instanceof ApiRequestError && err.code === 'CONFIRM_MISMATCH') {
+          setError(err.message);
+          fieldRef.current?.focus();
+        } else {
+          onToast(err instanceof NetworkError ? SAVE_FAILED : failureCopy(err), 'alert');
+        }
+      },
+    });
+  };
+
+  return (
+    <Dialog labelledBy={headingId} onClose={onClose} initialFocus={fieldRef} role="alertdialog">
+      <form noValidate onSubmit={submit} className="flex flex-col gap-s5">
+        <div>
+          <h2 id={headingId} className="text-2xl leading-[1.2]">
+            Delete “{title}”?
+          </h2>
+          <p className="mt-s3 text-muted">
+            {guests} {guests === 1 ? 'guest' : 'guests'} and {claims}{' '}
+            {claims === 1 ? 'claim' : 'claims'} will be removed for everyone, right now. Type the
+            event name to confirm.
+          </p>
+        </div>
+        <TextField
+          ref={fieldRef}
+          id={`${headingId}-name`}
+          label="Event name"
+          value={typed}
+          placeholder={title}
+          autoComplete="off"
+          disabled={remove.isPending}
+          error={error}
+          onChange={(e) => {
+            setTyped(e.target.value);
+            setError(undefined);
+          }}
+        />
+        <div className="flex flex-col-reverse gap-s3 tablet:flex-row tablet:justify-end">
+          <Button variant="secondary" onClick={onClose} disabled={remove.isPending}>
+            Keep board
+          </Button>
+          <Button
+            type="submit"
+            variant="danger"
+            disabled={!matches}
+            loading={remove.isPending}
+            loadingLabel="Deleting…"
+          >
+            Delete for everyone
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
 }
