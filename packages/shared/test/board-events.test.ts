@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { applyBoardEvent, BoardEvent, type SlotView, type Snapshot } from '../src/index.ts';
+import {
+  applyBoardEvent,
+  BoardEvent,
+  type SequencedBoardEvent,
+  type SlotView,
+  type Snapshot,
+} from '../src/index.ts';
 
 const HOST = '00000000-0000-4000-8000-000000000001';
 const GUEST = '00000000-0000-4000-8000-000000000002';
@@ -63,11 +69,11 @@ describe('applyBoardEvent', () => {
   });
 
   it('participant.joined appends once even if delivered twice', () => {
-    const msg = {
+    const msg: SequencedBoardEvent = {
       type: 'participant.joined',
       seq: 4,
       participant: { id: GUEST, displayName: 'Reza', dietaryNeeds: ['vegan'], role: 'guest' },
-    } as const;
+    };
     const once = applyBoardEvent(board(), msg);
     const twice = applyBoardEvent(once, msg);
     expect(twice.participants.map((p) => p.displayName)).toEqual(['Mina', 'Reza']);
