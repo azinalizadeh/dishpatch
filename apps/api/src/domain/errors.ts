@@ -37,3 +37,10 @@ export const nameTaken = (existingName: string) =>
 
 export const eventFull = () =>
   new DomainError(409, 'EVENT_FULL', 'This board is full — 100 people have already joined.');
+
+export const tooManyStreams = () =>
+  new DomainError(
+    429,
+    'TOO_MANY_STREAMS',
+    'This board is open in too many tabs. Close one and try again.',
+  );

@@ -42,6 +42,8 @@ function shutdown(signal: string) {
   server.close(() => {
     void db.sql.end({ timeout: 5 }).finally(() => process.exit(0));
   });
+  // Open SSE streams never finish on their own; EventSource reconnects to the next instance.
+  server.closeAllConnections();
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
