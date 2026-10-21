@@ -2,8 +2,7 @@ import { CreateEventInput, type CreateEventResponse } from '@dishpatch/shared';
 import { Router } from 'express';
 import type { Clock } from '../clock.ts';
 import type { Db } from '../db/client.ts';
-import { createEvent } from '../domain/events.ts';
-import { getSnapshot } from '../domain/snapshot.ts';
+import { createEvent, getSnapshot } from '../domain/events.ts';
 import type { Env } from '../env.ts';
 import type { RateLimits } from '../middleware/rate-limits.ts';
 import { type Actor, requireActor, setSessionCookie } from '../middleware/session.ts';
@@ -36,7 +35,7 @@ export function eventsRouter({ db, clock, env, limits }: Deps): Router {
   });
 
   // #5 Snapshot for a member of this board; anyone else gets 404.
-  router.get('/events/:eventId', requireActor(db, clock), async (_req, res) => {
+  router.get('/events/:eventId', requireActor(db, clock), limits.snapshot, async (_req, res) => {
     res.json(await getSnapshot(db, res.locals.actor as Actor));
   });
 

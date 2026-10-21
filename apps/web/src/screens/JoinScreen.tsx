@@ -15,6 +15,7 @@ import { forgetJoin, joinedEventFor, rememberJoin } from '../api/joined-boards.t
 import { Banner } from '../components/Banner.tsx';
 import { Button, ButtonLink } from '../components/Button.tsx';
 import { Chip } from '../components/Chip.tsx';
+import { Skeleton } from '../components/Skeleton.tsx';
 import { TextField } from '../components/TextField.tsx';
 import { formatWhen } from '../format.ts';
 
@@ -29,7 +30,7 @@ type Load =
 const PROBLEM_COPY: Record<Problem, string> = {
   offline: "You're offline, so we couldn't reach the board. Check your connection and try again.",
   'rate-limited': 'Too many tries. Wait a minute and try again.',
-  full: 'This board is full — 100 people have already joined.',
+  full: `This board is full — ${LIMITS.participantsMax} people have already joined.`,
   cookies: 'Dishpatch needs cookies to remember you on this board.',
   server: 'Something broke on our side. Please try again.',
 };
@@ -347,11 +348,11 @@ function CardSkeleton() {
       aria-label="Loading the invite"
       className="flex flex-col gap-s4 rounded-lg border border-border bg-surface p-s6 shadow-e1"
     >
-      <span className="h-3 w-40 animate-pulse rounded-sm bg-surface-2" />
-      <span className="h-8 w-3/4 animate-pulse rounded-sm bg-surface-2" />
-      <span className="h-4 w-1/2 animate-pulse rounded-sm bg-surface-2" />
-      <span className="h-12 w-full animate-pulse rounded-md bg-surface-2" />
-      <span className="h-10 w-full animate-pulse rounded-md bg-surface-2" />
+      <Skeleton className="h-3 w-40 rounded-sm" />
+      <Skeleton className="h-8 w-3/4 rounded-sm" />
+      <Skeleton className="h-4 w-1/2 rounded-sm" />
+      <Skeleton className="h-12 w-full rounded-md" />
+      <Skeleton className="h-10 w-full rounded-md" />
     </div>
   );
 }

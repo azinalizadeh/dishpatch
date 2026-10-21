@@ -101,4 +101,38 @@ test.describe('accessibility', () => {
     await expect(page).toHaveURL(/\/share$/);
     await expect(page.getByText('13 slots')).toBeVisible();
   });
+
+  test('the join form works from the keyboard alone', async ({ page, baseURL }) => {
+    const res = await page.request.post('/api/events', {
+      headers: { Origin: new URL(baseURL ?? 'http://localhost:3000').origin },
+      data: {
+        title: "Friendsgiving at Mina's",
+        startsAt: '2099-11-21T18:00:00.000Z',
+        hostName: 'Mina',
+        hostDietaryNeeds: [],
+        slots: [{ category: 'main', count: 3 }],
+      },
+    });
+    const { eventId, inviteUrl } = (await res.json()) as { eventId: string; inviteUrl: string };
+
+    await page.goto(new URL(inviteUrl).pathname);
+    await page.getByLabel('Your name').focus();
+    await page.keyboard.type('Priya');
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Vegetarian' })).toBeFocused();
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: /Vegetarian/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByRole('button', { name: /Vegan/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.getByLabel('Your name').focus();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(new RegExp(`/events/${eventId}$`));
+  });
 });

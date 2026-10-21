@@ -48,4 +48,17 @@ describe('GET /api/events/:eventId', () => {
       expect(res.body.error.code).toBe('NOT_FOUND');
     }
   });
+
+  it('is rate limited after 120 requests per minute per session', async () => {
+    const board = await createBoard(db);
+    const { app } = intApp(db, { clock });
+    const get = () =>
+      request(app)
+        .get(`/api/events/${board.eventId}`)
+        .set('Cookie', `dp_sess=${board.sessionToken}`);
+    for (let i = 0; i < 120; i++) expect((await get()).status).toBe(200);
+    const res = await get();
+    expect(res.status).toBe(429);
+    expect(res.body.error.code).toBe('RATE_LIMITED');
+  });
 });
