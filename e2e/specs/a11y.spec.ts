@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures.ts';
 
-// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound; M3: join).
+// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound; M3: join; M4: board).
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
 
 async function expectNoSeriousViolations(page: Page) {
@@ -74,8 +74,63 @@ test.describe('accessibility', () => {
         await expect(page.getByRole('alert')).toBeFocused();
         await expectNoSeriousViolations(page);
       });
+
+      test('board (empty, offline) has no serious violations', async ({
+        page,
+        context,
+        baseURL,
+      }) => {
+        const res = await page.request.post('/api/events', {
+          headers: { Origin: new URL(baseURL ?? 'http://localhost:3000').origin },
+          data: {
+            title: "Friendsgiving at Mina's",
+            startsAt: '2099-11-21T18:00:00.000Z',
+            location: "Mina's flat, 3rd floor",
+            hostName: 'Mina',
+            hostDietaryNeeds: [],
+            slots: [
+              { category: 'main', count: 3 },
+              { category: 'dessert', count: 2 },
+            ],
+          },
+        });
+        const { eventId } = (await res.json()) as { eventId: string };
+
+        await page.goto(`/events/${eventId}`);
+        await expect(page.getByRole('status').filter({ hasText: /^Live/ })).toBeVisible();
+        await expectNoSeriousViolations(page);
+
+        await context.setOffline(true);
+        await expect(page.getByText(/Connection lost/)).toBeVisible();
+        await expectNoSeriousViolations(page);
+        await context.setOffline(false);
+      });
     });
   }
+
+  test('board slots are reachable from the keyboard', async ({ page, baseURL }) => {
+    const res = await page.request.post('/api/events', {
+      headers: { Origin: new URL(baseURL ?? 'http://localhost:3000').origin },
+      data: {
+        title: "Friendsgiving at Mina's",
+        startsAt: '2099-11-21T18:00:00.000Z',
+        hostName: 'Mina',
+        hostDietaryNeeds: [],
+        slots: [{ category: 'main', count: 2 }],
+      },
+    });
+    const { eventId } = (await res.json()) as { eventId: string };
+    await page.goto(`/events/${eventId}`);
+    await expect(page.getByRole('status').filter({ hasText: /^Live/ })).toBeVisible();
+    const first = page.getByRole('button', { name: 'Claim open Mains slot 1' });
+    await first.focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Claim open Mains slot 2' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Enter');
+    // The claim dialog (F4) opens from ?claim=<slotId>.
+    await expect(page).toHaveURL(/\?claim=[0-9a-f-]{36}$/);
+  });
 
   test('the create form works from the keyboard alone', async ({ page }) => {
     await page.goto('/');
