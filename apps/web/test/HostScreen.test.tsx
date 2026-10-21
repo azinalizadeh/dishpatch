@@ -1,7 +1,8 @@
 import { computeCoverage, type Snapshot } from '@dishpatch/shared';
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockupBoard } from '../../../packages/shared/test/fixtures/mockup-board.ts';
+import { FakeEventSource } from './fake-event-source.ts';
 import { renderRoutes } from './render-routes.tsx';
 
 const eventId = '0b5a4c1e-8a57-4d4b-9f4c-2f1b8e7a9c11';
@@ -69,6 +70,18 @@ describe('HostScreen', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     const [, init] = fetchMock.mock.calls.find(([, i]) => i?.method === 'DELETE') ?? [];
     expect(JSON.parse(String(init?.body))).toEqual({ confirmTitle: TITLE });
+    expect(await screen.findByText('Board deleted')).toBeTruthy();
+  });
+
+  it("still lands on create when the stream's event.deleted beats the 204", async () => {
+    serve(snapshot(), () => new Promise<Response>(() => {})); // DELETE never answers
+    const router = renderRoutes(`/events/${eventId}/host`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete board' }));
+    fireEvent.change(screen.getByLabelText('Event name'), { target: { value: TITLE } });
+    fireEvent.click(screen.getByRole('button', { name: 'Delete for everyone' }));
+    await screen.findByRole('button', { name: 'Deleting…' });
+    act(() => FakeEventSource.latest().emit({ type: 'event.deleted' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(await screen.findByText('Board deleted')).toBeTruthy();
   });
 

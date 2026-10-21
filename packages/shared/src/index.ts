@@ -3,6 +3,7 @@ export {
   BoardEvent,
   type BoardEventType,
   type BoardState,
+  bySlotOrder,
   isSequenced,
   SequencedBoardEvent,
 } from './board-events.ts';

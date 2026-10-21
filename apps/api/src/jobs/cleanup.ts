@@ -27,10 +27,9 @@ export async function runCleanup(db: Db, clock: Clock, bus: EventBus): Promise<C
     .returning({ id: events.id });
   const pruned = await db.orm
     .delete(eventLog)
-    .where(lt(eventLog.createdAt, new Date(now.getTime() - LOG_RETENTION_MS)))
-    .returning({ id: eventLog.id });
+    .where(lt(eventLog.createdAt, new Date(now.getTime() - LOG_RETENTION_MS)));
   for (const { id } of expired) bus.publish(id, { type: 'event.deleted' });
-  return { events: expired.length, logRows: pruned.length };
+  return { events: expired.length, logRows: pruned.count };
 }
 
 /** Runs the cleanup once now, then every `intervalMinutes`. Logs counts only, never content. */

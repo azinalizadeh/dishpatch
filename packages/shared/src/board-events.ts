@@ -18,6 +18,9 @@ export const SequencedBoardEvent = z.discriminatedUnion('type', [
   z.object({ type: z.literal('slot.removed'), seq: Seq, slotId: z.uuid() }),
   z.object({ type: z.literal('participant.joined'), seq: Seq, participant: ParticipantView }),
   z.object({ type: z.literal('event.updated'), seq: Seq, locked: z.boolean() }),
+  // The host made a new invite link. Carries nothing (never the link): it only keeps the stream's
+  // seq gap-free, so viewers never take the rotation for a missed event.
+  z.object({ type: z.literal('invite.rotated'), seq: Seq }),
 ]);
 
 export type SequencedBoardEvent = z.infer<typeof SequencedBoardEvent>;
@@ -41,9 +44,13 @@ export function isSequenced(msg: BoardEvent): msg is SequencedBoardEvent {
   return 'seq' in msg;
 }
 
-const categoryOrder = (slot: SlotView) => CATEGORIES.indexOf(slot.category);
+const categoryOrder = (slot: Pick<SlotView, 'category'>) => CATEGORIES.indexOf(slot.category);
 
-function bySlotOrder(a: SlotView, b: SlotView): number {
+/** Board order: category (mains first), then position. */
+export function bySlotOrder(
+  a: Pick<SlotView, 'category' | 'position'>,
+  b: Pick<SlotView, 'category' | 'position'>,
+): number {
   return categoryOrder(a) - categoryOrder(b) || a.position - b.position;
 }
 
@@ -78,5 +85,7 @@ export function applyBoardEvent(state: BoardState, msg: BoardEvent): BoardState 
         : { ...next, participants: [...state.participants, msg.participant] };
     case 'event.updated':
       return { ...next, event: { ...state.event, locked: msg.locked } };
+    case 'invite.rotated':
+      return next;
   }
 }

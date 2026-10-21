@@ -124,4 +124,9 @@ describe('BoardEvent schema', () => {
     ).toBe(true);
     expect(BoardEvent.safeParse({ type: 'slot.exploded', seq: 1 }).success).toBe(false);
   });
+  it('invite.rotated only moves seq on', () => {
+    const state = board();
+    const next = applyBoardEvent(state, { type: 'invite.rotated', seq: 4 });
+    expect(next).toEqual({ ...state, seq: 4 });
+  });
 });

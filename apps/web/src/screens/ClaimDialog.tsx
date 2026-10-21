@@ -173,7 +173,7 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
 
         {firstImprovement && !error ? (
           <Banner tone="ok" icon="✓" role="status">
-            {previewText(firstImprovement, slot.category === 'main')}
+            {previewText(firstImprovement)}
           </Banner>
         ) : null}
 

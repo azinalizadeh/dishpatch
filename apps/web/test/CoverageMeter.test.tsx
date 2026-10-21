@@ -52,11 +52,12 @@ describe('coverage copy', () => {
     expect(
       coverageSummary([{ need: 'halal', guests: 1, dishes: 1, mains: 1, status: 'thin' }]),
     ).toBe('Halal: just one dish so far');
-    const change = { need: 'vegan', guests: 2, from: 'thin', to: 'ok' } as const;
-    expect(previewText(change, true)).toBe('This covers the vegan main gap for 2 guests.');
-    expect(previewText(change, false)).toBe('This covers vegan for 2 guests.');
-    expect(previewText({ need: 'nut_free', guests: 1, from: 'gap', to: 'thin' }, false)).toBe(
-      'This is the first nut-free dish, for 1 guest.',
-    );
+    const change = { need: 'vegan', guests: 2, from: 'thin', to: 'ok', mainsBefore: 0 } as const;
+    expect(previewText(change)).toBe('This covers the vegan main gap for 2 guests.');
+    // Thin only because it had one dish, already a main: no main gap to close.
+    expect(previewText({ ...change, mainsBefore: 1 })).toBe('This covers vegan for 2 guests.');
+    expect(
+      previewText({ need: 'nut_free', guests: 1, from: 'gap', to: 'thin', mainsBefore: 0 }),
+    ).toBe('This is the first nut-free dish, for 1 guest.');
   });
 });

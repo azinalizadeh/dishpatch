@@ -161,6 +161,11 @@ describe('topHint', () => {
     expect(topHint(coverage)).toEqual({ need: 'nut_free', categories: 'any' });
   });
 
+  it('topHint targets any slot when thin only because the one dish is a main', () => {
+    const coverage = computeCoverage(guests(['vegan']), [dish('main', ['vegan'])]);
+    expect(topHint(coverage)).toEqual({ need: 'vegan', categories: 'any' });
+  });
+
   it('topHint is null when everything is ok', () => {
     const coverage = computeCoverage(guests(['halal']), [
       dish('main', ['halal']),
@@ -180,7 +185,7 @@ describe('previewCoverage', () => {
       slotId: openMain?.id ?? '',
       dishTags: ['vegetarian', 'vegan', 'dairy_free', 'halal'],
     });
-    expect(changes).toEqual([{ need: 'vegan', guests: 2, from: 'thin', to: 'ok' }]);
+    expect(changes).toEqual([{ need: 'vegan', guests: 2, from: 'thin', to: 'ok', mainsBefore: 0 }]);
   });
 
   it('lists every need that gets better, most guests first', () => {
@@ -190,8 +195,8 @@ describe('previewCoverage', () => {
     };
     const slotId = board.slots[1]?.id ?? '';
     expect(previewCoverage(board, { slotId, dishTags: ['halal', 'nut_free'] })).toEqual([
-      { need: 'halal', guests: 2, from: 'thin', to: 'ok' },
-      { need: 'nut_free', guests: 1, from: 'gap', to: 'thin' },
+      { need: 'halal', guests: 2, from: 'thin', to: 'ok', mainsBefore: 0 },
+      { need: 'nut_free', guests: 1, from: 'gap', to: 'thin', mainsBefore: 0 },
     ]);
   });
 

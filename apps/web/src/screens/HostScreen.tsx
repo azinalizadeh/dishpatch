@@ -1,8 +1,10 @@
 import { CATEGORIES, type Category, LIMITS, type Snapshot } from '@dishpatch/shared';
+import { useIsMutating } from '@tanstack/react-query';
 import { type FormEvent, useCallback, useId, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Navigate, useNavigate, useParams } from 'react-router';
 import { ApiRequestError } from '../api/client.ts';
 import {
+  deleteBoardKey,
   useAddSlot,
   useDeleteBoard,
   useRemoveSlot,
@@ -62,8 +64,11 @@ export function HostScreen() {
   );
   const dismissToast = useCallback(() => setToast(null), []);
 
+  const deleting = useIsMutating({ mutationKey: deleteBoardKey(eventId) }) > 0;
   useConnectionInHeader(connection, presence);
 
+  // Our own delete: the stream's `event.deleted` can beat the 204, so finish the redirect here too.
+  if (connection === 'notfound' && deleting) return <BoardDeleted />;
   if (connection === 'notfound' || (board && board.me.role !== 'host')) return <NotFoundScreen />;
 
   let content = (
@@ -94,6 +99,11 @@ export function HostScreen() {
       />
     </section>
   );
+}
+
+/** Where a deleted board sends its host (03-design.md › host › Interactions). */
+function BoardDeleted() {
+  return <Navigate to="/" replace state={{ toast: 'Board deleted' }} />;
 }
 
 type OnToast = (message: string, role?: ToastRole, action?: ToastAction) => void;

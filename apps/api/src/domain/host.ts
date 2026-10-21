@@ -36,6 +36,7 @@ async function lockEvent(tx: Tx, eventId: string) {
       startsAt: events.startsAt,
       location: events.location,
       locked: events.locked,
+      seq: events.seq,
     })
     .from(events)
     .where(eq(events.id, eventId))
@@ -44,7 +45,10 @@ async function lockEvent(tx: Tx, eventId: string) {
   return event;
 }
 
-/** API #9. Two host devices toggling at once: the row lock orders them and the last one wins. */
+/**
+ * API #9. Two host devices toggling at once: the row lock orders them and the last one wins.
+ * Asking for the state the board is already in changes nothing and announces nothing.
+ */
 export async function setLocked(
   db: Db,
   clock: Clock,
@@ -54,11 +58,13 @@ export async function setLocked(
 ): Promise<UpdateEventResponse> {
   requireHost(actor);
   return recordAndPublish(db, bus, clock, async (tx, record) => {
-    const event = await lockEvent(tx, actor.eventId);
+    const { seq: current, startsAt, ...event } = await lockEvent(tx, actor.eventId);
+    const view = { ...event, startsAt: startsAt.toISOString(), locked };
+    // A no-op still answers with a real seq, so a brand-new board (seq 0) records once.
+    if (event.locked === locked && current > 0) return { event: view, seq: current };
     await tx.update(events).set({ locked }).where(eq(events.id, event.id));
     const { seq } = await record(event.id, { type: 'event.updated', locked });
-    const { startsAt, ...rest } = event;
-    return { event: { ...rest, startsAt: startsAt.toISOString(), locked }, seq };
+    return { event: view, seq };
   });
 }
 

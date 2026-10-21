@@ -11,20 +11,10 @@ type Tx = Parameters<Parameters<Db['orm']['transaction']>[0]>[0];
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 export type UnsequencedChange = DistributiveOmit<SequencedBoardEvent, 'seq'>;
 
-/**
- * Changes that are logged (actor trail, 07-security.md › R1) and bump `seq`, but never reach the
- * stream: nothing on the board changes for viewers. Replay skips them and the SSE hub fills the
- * seq gap they leave from the log.
- */
-export type LogOnlyChange = { type: 'invite.rotated' };
-
 export type RecordChange = (
   eventId: string,
-  change: UnsequencedChange | LogOnlyChange,
-) => Promise<{ seq: number }>;
-
-const isLogOnly = (change: UnsequencedChange | LogOnlyChange): change is LogOnlyChange =>
-  change.type === 'invite.rotated';
+  change: UnsequencedChange,
+) => Promise<SequencedBoardEvent>;
 
 /**
  * Runs one board mutation (04-architecture.md › Write path). Inside `work`, `record` bumps
@@ -52,10 +42,9 @@ export async function recordAndPublish<T>(
       await tx
         .insert(eventLog)
         .values({ eventId, seq: row.seq, type, payload, createdAt: clock.now() });
-      if (!isLogOnly(change)) {
-        outbox.push({ eventId, msg: { ...change, seq: row.seq } as SequencedBoardEvent });
-      }
-      return { seq: row.seq };
+      const msg = { ...change, seq: row.seq } as SequencedBoardEvent;
+      outbox.push({ eventId, msg });
+      return msg;
     };
     return work(tx, record);
   });
@@ -90,7 +79,7 @@ export function createEventLogRepo(db: Db): EventLogRepo {
             .where(and(eq(eventLog.eventId, eventId), gt(eventLog.seq, afterSeq)))
             .orderBy(asc(eventLog.seq));
           if (rows[0]?.seq !== afterSeq + 1) return 'too_old';
-          // Rows the stream doesn't carry (e.g. `invite.rotated`) are skipped, not fatal: one odd
+          // Rows the stream doesn't carry are skipped, not fatal: one odd
           // row must never block replay for the whole board.
           return rows.flatMap(({ seq, type, payload }) => {
             const parsed = SequencedBoardEvent.safeParse({ ...(payload as object), type, seq });

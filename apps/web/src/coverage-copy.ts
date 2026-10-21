@@ -40,11 +40,11 @@ export function coverageSummary(coverage: readonly NeedCoverage[]): string | nul
 }
 
 /** The claim dialog's preview banner: "This covers the vegan main gap for 2 guests." */
-export function previewText(change: CoverageChange, draftIsMain: boolean): string {
+export function previewText(change: CoverageChange): string {
   const guests = change.guests === 1 ? '1 guest' : `${change.guests} guests`;
   const need = lower(change.need);
   if (change.to === 'thin') return `This is the first ${need} dish, for ${guests}.`;
-  if (change.from === 'thin' && draftIsMain)
+  if (change.from === 'thin' && change.mainsBefore === 0)
     return `This covers the ${need} main gap for ${guests}.`;
   return `This covers ${need} for ${guests}.`;
 }

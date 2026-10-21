@@ -131,5 +131,7 @@ export const eventLog = pgTable(
       sql`${t.type} IN ('slot.claimed','slot.released','slot.added','slot.removed','participant.joined','event.updated','invite.rotated')`,
     ),
     unique('event_log_event_seq_uq').on(t.eventId, t.seq),
+    // The cleanup job prunes by age across every board.
+    index('event_log_created_at_idx').on(t.createdAt),
   ],
 );

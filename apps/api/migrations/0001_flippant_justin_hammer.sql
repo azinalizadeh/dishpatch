@@ -1,0 +1,1 @@
+CREATE INDEX "event_log_created_at_idx" ON "event_log" USING btree ("created_at");

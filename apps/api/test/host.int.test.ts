@@ -139,6 +139,20 @@ describe('host controls', () => {
       expect(hostRelease.body.error.message).toMatch(/unlock/);
     });
 
+    it('locking a locked board changes nothing and announces nothing', async () => {
+      const { host, published, seq } = await setup();
+      await host.patch('', { locked: true });
+      const after = await seq();
+      const again = await host.patch('', { locked: true });
+      expect(again.status).toBe(200);
+      expect(UpdateEventResponse.parse(again.body)).toMatchObject({
+        event: { locked: true },
+        seq: after,
+      });
+      expect(await seq()).toBe(after);
+      expect(published).toHaveLength(1);
+    });
+
     it('unlocking reopens claims', async () => {
       const { board, host, reza, claim } = await setup();
       const [main0] = await slotIds(db, board.eventId);
@@ -200,7 +214,7 @@ describe('host controls', () => {
       expect((await claim(reza, main0?.id)).status).toBe(200);
     });
 
-    it('logs invite.rotated (actor trail) without streaming it; replay skips it', async () => {
+    it('logs invite.rotated (actor trail) and streams it without the link, so seq stays gap-free', async () => {
       const { board, host, published, seq } = await setup();
       const before = (await seq()) ?? 0;
 
@@ -208,7 +222,11 @@ describe('host controls', () => {
       expect(body.seq).toBe(before + 1);
       await host.patch('', { locked: true });
 
-      expect(published.map((m) => m.type)).toEqual(['event.updated']);
+      expect(published).toEqual([
+        { type: 'invite.rotated', seq: before + 1 },
+        { type: 'event.updated', seq: before + 2, locked: true },
+      ]);
+      expect(JSON.stringify(published)).not.toContain(new URL(body.inviteUrl).pathname);
       const logged = await db.orm
         .select({ type: eventLog.type, payload: eventLog.payload })
         .from(eventLog)
@@ -216,7 +234,13 @@ describe('host controls', () => {
       expect(logged).toEqual([{ type: 'invite.rotated', payload: {} }]);
       expect(JSON.stringify(logged)).not.toContain(board.inviteToken);
       const replay = await createEventLogRepo(db).since(board.eventId, before);
-      expect(replay).toEqual([{ type: 'event.updated', seq: before + 2, locked: true }]);
+      expect(replay).toEqual(published);
+    });
+
+    it("guests' refused rotations don't use up the host's 5 per hour", async () => {
+      const { host, reza } = await setup();
+      for (let i = 0; i < 6; i++) expect((await reza.post('/invite/rotate')).status).toBe(403);
+      expect((await host.post('/invite/rotate')).status).toBe(200);
     });
 
     it('is limited to 5 rotations per hour per board', async () => {

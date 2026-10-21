@@ -12,7 +12,7 @@ function limiter(
   windowMs: number,
   limit: number,
   message: string,
-  extra: Partial<Pick<Options, 'keyGenerator'>> = {},
+  extra: Partial<Pick<Options, 'keyGenerator' | 'skip'>> = {},
 ) {
   return rateLimit({
     windowMs,
@@ -74,13 +74,18 @@ const perSession = (windowMs: number, limit: number, message: string) =>
     },
   });
 
-/** Keyed by the board in the path, whoever calls (rotation is per board, not per device). */
-const perEvent = (windowMs: number, limit: number, message: string) =>
+/**
+ * Keyed by the board in the path (rotation is per board, not per device), counting only the
+ * host's requests: mount after `requireActor`. A guest's call is refused by the service anyway
+ * (403 HOST_ONLY) and must not use up the host's budget.
+ */
+const perEventForHost = (windowMs: number, limit: number, message: string) =>
   limiter(windowMs, limit, message, {
     keyGenerator: (req: Request) => {
       const eventId = req.params.eventId;
       return `event:${typeof eventId === 'string' ? eventId : ''}`;
     },
+    skip: (_req, res) => (res.locals.actor as { role?: string } | undefined)?.role !== 'host',
   });
 
 /**
@@ -96,7 +101,7 @@ export function createRateLimits() {
     snapshot: perSession(MINUTE, 120, 'Too many requests. Wait a minute and try again.'),
     claims: perSession(MINUTE, 30, "You're claiming very fast. Wait a minute and try again."),
     hostActions: perSession(MINUTE, 30, "You're changing things very fast. Wait a minute."),
-    rotateInvite: perEvent(HOUR, 5, "You've made a lot of new links — try again in a bit."),
+    rotateInvite: perEventForHost(HOUR, 5, "You've made a lot of new links — try again in a bit."),
     deleteEvent: perSession(HOUR, 5, 'Too many tries. Wait a bit and try again.'),
     boardMisses: notFoundsPerIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
   };

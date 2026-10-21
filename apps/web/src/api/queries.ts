@@ -1,5 +1,6 @@
 import {
   AddSlotResponse,
+  bySlotOrder,
   type Category,
   type ClaimInput,
   ClaimResponse,
@@ -194,7 +195,9 @@ export function useAddSlot(eventId: string) {
       postJson(`${eventPath(eventId)}/slots`, AddSlotResponse, { category }),
     onSuccess: ({ slot }) =>
       patchBoard(queryClient, eventId, (b) =>
-        b.slots.some((s) => s.id === slot.id) ? b : { ...b, slots: [...b.slots, slot] },
+        b.slots.some((s) => s.id === slot.id)
+          ? b
+          : { ...b, slots: [...b.slots, slot].sort(bySlotOrder) },
       ),
   });
 }
@@ -227,8 +230,11 @@ export function useRotateInvite(eventId: string) {
 }
 
 /** API #13: deletes the board for everyone once the typed title matches. */
+export const deleteBoardKey = (eventId: string) => ['delete-board', eventId] as const;
+
 export function useDeleteBoard(eventId: string) {
   return useMutation<void, Error, string>({
+    mutationKey: deleteBoardKey(eventId),
     mutationFn: (confirmTitle) =>
       deleteJson(eventPath(eventId), NoContent, undefined, { confirmTitle }),
   });

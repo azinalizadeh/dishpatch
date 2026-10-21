@@ -18,6 +18,8 @@ export interface CoverageChange {
   guests: number;
   from: CoverageStatus;
   to: CoverageStatus;
+  /** Compatible mains before the draft: 0 means the draft closes a main gap. */
+  mainsBefore: number;
 }
 
 type Participant = { dietaryNeeds: readonly Dietary[] };
@@ -70,7 +72,8 @@ export function computeCoverage(
 
 /**
  * The one need worth nudging people about: the uncovered need with the most guests (a gap wins a
- * tie). Thin needs a main; a gap takes any dish. Null when every need is covered.
+ * tie). Thin with no compatible main needs a main; a gap, or thin with one dish that is already a
+ * main, takes any dish. Null when every need is covered.
  */
 export function topHint(coverage: readonly NeedCoverage[]): CoverageHint | null {
   let top: NeedCoverage | null = null;
@@ -79,7 +82,7 @@ export function topHint(coverage: readonly NeedCoverage[]): CoverageHint | null 
     if (top === null || row.guests > top.guests) top = row;
   }
   if (top === null) return null;
-  return { need: top.need, categories: top.status === 'thin' ? 'main' : 'any' };
+  return { need: top.need, categories: top.status === 'thin' && top.mains === 0 ? 'main' : 'any' };
 }
 
 /**
@@ -105,7 +108,13 @@ export function previewCoverage(
   for (const was of before) {
     const now = afterByNeed.get(was.need) as NeedCoverage;
     if (STATUS_ORDER[now.status] > STATUS_ORDER[was.status]) {
-      changes.push({ need: was.need, guests: was.guests, from: was.status, to: now.status });
+      changes.push({
+        need: was.need,
+        guests: was.guests,
+        from: was.status,
+        to: now.status,
+        mainsBefore: was.mains,
+      });
     }
   }
   return changes.sort((a, b) => b.guests - a.guests);
