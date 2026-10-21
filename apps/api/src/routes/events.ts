@@ -35,9 +35,15 @@ export function eventsRouter({ db, clock, env, limits }: Deps): Router {
   });
 
   // #5 Snapshot for a member of this board; anyone else gets 404.
-  router.get('/events/:eventId', requireActor(db, clock), limits.snapshot, async (_req, res) => {
-    res.json(await getSnapshot(db, res.locals.actor as Actor));
-  });
+  router.get(
+    '/events/:eventId',
+    limits.boardMisses,
+    requireActor(db, clock),
+    limits.snapshot,
+    async (_req, res) => {
+      res.json(await getSnapshot(db, res.locals.actor as Actor));
+    },
+  );
 
   return router;
 }

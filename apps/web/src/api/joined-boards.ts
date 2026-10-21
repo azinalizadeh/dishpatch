@@ -3,9 +3,14 @@
 // can't see it; we keep only SHA-256(invite token) → eventId, never the raw token (07-security.md › I2).
 const KEY = 'dp_joined';
 
-async function inviteKey(inviteToken: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(inviteToken));
-  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+/** null when SubtleCrypto is missing (plain-HTTP origins other than localhost): we then just don't remember. */
+async function inviteKey(inviteToken: string): Promise<string | null> {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(inviteToken));
+    return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
 }
 
 function read(): Record<string, string> {
@@ -25,17 +30,21 @@ function write(map: Record<string, string>) {
   }
 }
 
+// None of these throw: remembering is a convenience, never a reason to fail a join.
 export async function joinedEventFor(inviteToken: string): Promise<string | null> {
-  const map = read();
-  return map[await inviteKey(inviteToken)] ?? null;
+  const key = await inviteKey(inviteToken);
+  return key ? (read()[key] ?? null) : null;
 }
 
 export async function rememberJoin(inviteToken: string, eventId: string): Promise<void> {
-  write({ ...read(), [await inviteKey(inviteToken)]: eventId });
+  const key = await inviteKey(inviteToken);
+  if (key) write({ ...read(), [key]: eventId });
 }
 
 export async function forgetJoin(inviteToken: string): Promise<void> {
+  const key = await inviteKey(inviteToken);
+  if (!key) return;
   const map = read();
-  delete map[await inviteKey(inviteToken)];
+  delete map[key];
   write(map);
 }

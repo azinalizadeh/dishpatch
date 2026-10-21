@@ -61,4 +61,15 @@ describe('GET /api/events/:eventId', () => {
     expect(res.status).toBe(429);
     expect(res.body.error.code).toBe('RATE_LIMITED');
   });
+
+  it('caps failed board lookups at 30 per minute per IP, before any session lookup', async () => {
+    const board = await createBoard(db);
+    const { app } = intApp(db, { clock });
+    const probe = () =>
+      request(app)
+        .get(`/api/events/${board.eventId}`)
+        .set('Cookie', `dp_sess=${'p'.repeat(43)}`);
+    for (let i = 0; i < 30; i++) expect((await probe()).status).toBe(404);
+    expect((await probe()).status).toBe(429);
+  });
 });

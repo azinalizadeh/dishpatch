@@ -12,11 +12,11 @@ function limiter(
   windowMs: number,
   limit: number,
   message: string,
-  keyGenerator?: Options['keyGenerator'],
+  extra: Partial<Pick<Options, 'keyGenerator' | 'skipSuccessfulRequests'>> = {},
 ) {
   return rateLimit({
     windowMs,
-    ...(keyGenerator ? { keyGenerator } : {}),
+    ...extra,
     limit,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
@@ -31,11 +31,17 @@ function limiter(
 const perIp = (windowMs: number, limit: number, message: string) =>
   limiter(windowMs, limit, message);
 
+/** Counts only failed requests per IP: caps session/board-id probing before any DB lookup is cheap. */
+const failuresPerIp = (windowMs: number, limit: number, message: string) =>
+  limiter(windowMs, limit, message, { skipSuccessfulRequests: true });
+
 /** Keyed by the session cookie's hash; mount after `requireActor`, so only real sessions count. */
 const perSession = (windowMs: number, limit: number, message: string) =>
-  limiter(windowMs, limit, message, (req: Request) => {
-    const cookies = req.cookies as Record<string, string | undefined> | undefined;
-    return hashToken(cookies?.[SESSION_COOKIE] ?? '').toString('hex');
+  limiter(windowMs, limit, message, {
+    keyGenerator: (req: Request) => {
+      const cookies = req.cookies as Record<string, string | undefined> | undefined;
+      return hashToken(cookies?.[SESSION_COOKIE] ?? '').toString('hex');
+    },
   });
 
 /**
@@ -49,6 +55,7 @@ export function createRateLimits() {
     invitePreview: perIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
     join: perIp(MINUTE, 10, 'Too many tries. Wait a minute and try again.'),
     snapshot: perSession(MINUTE, 120, 'Too many requests. Wait a minute and try again.'),
+    boardMisses: failuresPerIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
   };
 }
 

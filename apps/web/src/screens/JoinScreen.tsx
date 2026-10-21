@@ -60,36 +60,47 @@ export function JoinScreen() {
     [navigate],
   );
 
-  const loadPreview = useCallback(async () => {
-    setLoad({ kind: 'loading' });
-    try {
-      const preview = await getJson(
-        `/api/invites/${encodeURIComponent(inviteToken)}`,
-        InvitePreview,
-      );
-      setLoad({ kind: 'ready', preview });
-    } catch (err) {
-      setLoad(
-        isInviteInvalid(err) ? { kind: 'invalid' } : { kind: 'failed', reason: problemFrom(err) },
-      );
-    }
-  }, [inviteToken]);
+  const loadPreview = useCallback(
+    async (isActive: () => boolean = () => true) => {
+      setLoad({ kind: 'loading' });
+      try {
+        const preview = await getJson(
+          `/api/invites/${encodeURIComponent(inviteToken)}`,
+          InvitePreview,
+        );
+        if (isActive()) setLoad({ kind: 'ready', preview });
+      } catch (err) {
+        if (!isActive()) return;
+        setLoad(
+          isInviteInvalid(err) ? { kind: 'invalid' } : { kind: 'failed', reason: problemFrom(err) },
+        );
+      }
+    },
+    [inviteToken],
+  );
 
   useEffect(() => {
     let active = true;
+    const isActive = () => active;
     (async () => {
-      // Joined from this link before? A snapshot 200 means the session is still good.
+      // Joined from this link before? Only a 404 means the session is gone; any other answer
+      // (a 200, or a blip like 429/500) goes to the board, which has its own retry, so a member
+      // is never offered the form a second time.
       const eventId = await joinedEventFor(inviteToken);
       if (eventId) {
         try {
-          await getJson(`/api/events/${eventId}`, Snapshot);
+          await getJson(`/api/events/${encodeURIComponent(eventId)}`, Snapshot);
           if (active) openBoard(eventId);
           return;
         } catch (err) {
-          if (err instanceof ApiRequestError && err.status === 404) await forgetJoin(inviteToken);
+          if (!(err instanceof ApiRequestError && err.status === 404)) {
+            if (active) openBoard(eventId);
+            return;
+          }
+          await forgetJoin(inviteToken);
         }
       }
-      if (active) await loadPreview();
+      if (active) await loadPreview(isActive);
     })();
     return () => {
       active = false;
@@ -188,8 +199,12 @@ function JoinForm({
       } else if (err instanceof ApiRequestError && err.code === 'NAME_TAKEN') {
         setNameError(err.message);
         focusName();
-      } else if (err instanceof ApiRequestError && err.code === 'VALIDATION') {
-        setNameError(err.fields.displayName ?? err.message);
+      } else if (
+        err instanceof ApiRequestError &&
+        err.code === 'VALIDATION' &&
+        err.fields.displayName
+      ) {
+        setNameError(err.fields.displayName);
         focusName();
       } else {
         setProblem(problemFrom(err));

@@ -173,4 +173,40 @@ describe('JoinScreen', () => {
     expect(await screen.findByText('Add a name so people know who you are.')).toBeTruthy();
     expect(fetchMock.mock.calls.some(([path]) => path.endsWith('/join'))).toBe(false);
   });
+
+  it('a remembered board still opens when the session check hits a server blip', async () => {
+    await rememberJoin(token, eventId);
+    const fetchMock = stubApi((path) =>
+      path.startsWith('/api/events/') ? apiError(500, 'INTERNAL') : Response.json(preview),
+    );
+    const router = renderJoin();
+
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/events/${eventId}`));
+    expect(fetchMock.mock.calls.some(([path]) => path.startsWith('/api/invites/'))).toBe(false);
+  });
+
+  it('a validation error that is not about the name shows a banner, not a name error', async () => {
+    stubApi((path) =>
+      path.endsWith('/join')
+        ? Response.json(
+            {
+              error: {
+                code: 'VALIDATION',
+                message: 'Some fields need fixing.',
+                requestId: 'req-1',
+                fields: { 'dietaryNeeds.0': 'Invalid option' },
+              },
+            },
+            { status: 400 },
+          )
+        : Response.json(preview),
+    );
+    renderJoin();
+
+    fireEvent.change(await screen.findByLabelText('Your name'), { target: { value: 'Priya' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Join the board' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Something broke');
+    expect(screen.getByLabelText('Your name').getAttribute('aria-invalid')).toBeNull();
+  });
 });
