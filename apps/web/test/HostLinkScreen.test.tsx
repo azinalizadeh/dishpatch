@@ -1,14 +1,11 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { routes } from '../src/router.tsx';
+import { renderRoutes } from './render-routes.tsx';
 
 const eventId = '0b5a4c1e-8a57-4d4b-9f4c-2f1b8e7a9c11';
 
 function renderAt(path: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(<RouterProvider router={router} />);
-  return router;
+  return renderRoutes(path);
 }
 
 describe('HostLinkScreen', () => {

@@ -102,13 +102,13 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
 
 - **Stories:** US-05, US-06 · **Screens:** `board` (default, loading, empty, offline, locked) (design/screens/board*.png) · **Endpoints:** `GET /api/events/:eventId`, `GET /api/events/:eventId/stream` · **Entities:** events (seq), event_log, slots, participants
 - **Subtasks**
-  - [ ] F3.1 `[domain]` Shared `BoardEvent` union + pure `applyBoardEvent(state, msg)` (ignores `seq ≤ state.seq`, handles every event type). Files: `packages/shared/src/board-events.ts`, `packages/shared/test/board-events.test.ts`. Skill: `tdd`
-  - [ ] F3.2 `[api]` Snapshot route `GET /api/events/:eventId` (404 without session; includes `seq`, `me`). Files: `apps/api/src/routes/events.ts`, `apps/api/test/snapshot.int.test.ts`. Skill: `tdd`
-  - [ ] F3.3 `[domain]` `EventBus` (in-process) + `EventLogRepo.since(eventId, seq)` returning events or `'too_old'`; helper `recordAndPublish(tx, …)` that writes the log row in the tx and publishes after commit. Files: `apps/api/src/realtime/{event-bus.ts,event-log.ts}`, `apps/api/test/event-log.int.test.ts`. Skill: `tdd`
-  - [ ] F3.4 `[api]` SSE hub + `/stream` route (hand-written SSE writer on `res.write()`): `retry: 3000`, `id: seq`, replay from `Last-Event-ID`, `resync` when too old, heartbeat 20 s, presence (throttled 5 s), per-session (5) and per-IP (20) stream limits, close all streams on `event.deleted`. Files: `apps/api/src/realtime/sse-hub.ts`, `apps/api/src/routes/stream.ts`, `apps/api/test/{stream.int.test.ts,sse.replay.int.test.ts}`. Skill: `tdd`; `diagnosing-bugs` if replay/ordering tests are flaky
-  - [ ] F3.5 `[ui]` `use-board-stream` hook: TanStack Query snapshot, `EventSource`, apply events through `applyBoardEvent`, connection state machine (live → reconnecting after 2 s → live; `resync` → refetch; 404 → notfound), polite live-region announcer (throttled 2 s). Files: `apps/web/src/api/{queries.ts,use-board-stream.ts}`, `apps/web/test/use-board-stream.test.tsx`. Skill: `tdd`
-  - [ ] F3.6 `[ui]` `BoardScreen` layout + `CategoryGroup`, `SlotCard` (open/claimed/mine/disabled), `ConnectionIndicator`, guest list, loading/empty/offline/locked states, mobile coverage banner placeholder. Files: `apps/web/src/screens/BoardScreen.tsx`, `apps/web/src/components/{CategoryGroup,SlotCard,ConnectionIndicator,Avatar,Skeleton,Tag}.tsx`, `apps/web/test/BoardScreen.test.tsx`. Skill: `design-parity`
-  - [ ] F3.7 `[test]` E2E two-context real-time + reconnect. Files: `e2e/specs/{realtime.spec.ts,reconnect.spec.ts}`. Skill: `diagnosing-bugs` if flaky
+  - [x] F3.1 `[domain]` Shared `BoardEvent` union + pure `applyBoardEvent(state, msg)` (ignores `seq ≤ state.seq`, handles every event type). Files: `packages/shared/src/board-events.ts`, `packages/shared/test/board-events.test.ts`. Skill: `tdd`
+  - [x] F3.2 `[api]` Snapshot route `GET /api/events/:eventId` (404 without session; includes `seq`, `me`). Files: `apps/api/src/routes/events.ts`, `apps/api/test/snapshot.int.test.ts`. Skill: `tdd`
+  - [x] F3.3 `[domain]` `EventBus` (in-process) + `EventLogRepo.since(eventId, seq)` returning events or `'too_old'`; helper `recordAndPublish(tx, …)` that writes the log row in the tx and publishes after commit. Files: `apps/api/src/realtime/{event-bus.ts,event-log.ts}`, `apps/api/test/event-log.int.test.ts`. Skill: `tdd`
+  - [x] F3.4 `[api]` SSE hub + `/stream` route (hand-written SSE writer on `res.write()`): `retry: 3000`, `id: seq`, replay from `Last-Event-ID`, `resync` when too old, heartbeat 20 s, presence (throttled 5 s), per-session (5) and per-IP (20) stream limits, close all streams on `event.deleted`. Files: `apps/api/src/realtime/sse-hub.ts`, `apps/api/src/routes/stream.ts`, `apps/api/test/{stream.int.test.ts,sse.replay.int.test.ts}`. Skill: `tdd`; `diagnosing-bugs` if replay/ordering tests are flaky
+  - [x] F3.5 `[ui]` `use-board-stream` hook: TanStack Query snapshot, `EventSource`, apply events through `applyBoardEvent`, connection state machine (live → reconnecting after 2 s → live; `resync` → refetch; 404 → notfound), polite live-region announcer (throttled 2 s). Files: `apps/web/src/api/{queries.ts,use-board-stream.ts}`, `apps/web/test/use-board-stream.test.tsx`. Skill: `tdd`
+  - [x] F3.6 `[ui]` `BoardScreen` layout + `CategoryGroup`, `SlotCard` (open/claimed/mine/disabled), `ConnectionIndicator`, guest list, loading/empty/offline/locked states, mobile coverage banner placeholder. Files: `apps/web/src/screens/BoardScreen.tsx`, `apps/web/src/components/{CategoryGroup,SlotCard,ConnectionIndicator,Avatar,Skeleton,Tag}.tsx`, `apps/web/test/BoardScreen.test.tsx`. Skill: `design-parity`
+  - [x] F3.7 `[test]` E2E two-context real-time + reconnect. Files: `e2e/specs/{realtime.spec.ts,reconnect.spec.ts}`. Skill: `diagnosing-bugs` if flaky
 - **Tests**
   - Unit: `board-events.test.ts › applies slot.claimed and bumps seq`; `› ignores an event with seq <= current seq (idempotent replay)`; `› slot.released clears claimant and dish`; `› participant.joined appends once even if delivered twice`.
   - Integration: `event-log.int.test.ts › since returns events after seq in order`; `› since returns too_old when seq is older than the oldest retained row`; `› nothing is published when the transaction rolls back`.
@@ -126,18 +126,18 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - I1 → snapshot 404 for non-members.
   - A10 → publish strictly after commit (`event-log.int.test.ts › nothing is published when the transaction rolls back`).
 - **Definition of Done**
-  - [ ] All subtasks done; acceptance criteria of linked stories pass
+  - [x] All subtasks done; acceptance criteria of linked stories pass
   - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
-  - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
-  - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
-  - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
-  - [ ] Lint/format/typecheck clean; no new warnings
-  - [ ] No secrets in code or logs; errors handled with user-friendly messages
-  - [ ] README/docs updated if behavior or setup changed
-  - [ ] Any skill used for this feature is logged in skills/usage-log.md
+  - [x] Security controls for this feature implemented and tested (at least one negative/abuse test)
+  - [x] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
+  - [x] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
+  - [x] Lint/format/typecheck clean; no new warnings
+  - [x] No secrets in code or logs; errors handled with user-friendly messages
+  - [x] README/docs updated if behavior or setup changed
+  - [x] Any skill used for this feature is logged in skills/usage-log.md
   - Feature-specific:
-  - [ ] p95 event propagation (participant.joined) < 500 ms over 20 runs of `realtime.spec.ts`, number written in README
-  - [ ] Live-region announcements are throttled (no more than one per 2 s) — verified with a screen reader or the component test
+  - [x] p95 event propagation (participant.joined) < 500 ms over 20 runs of `realtime.spec.ts`, number written in README
+  - [x] Live-region announcements are throttled (no more than one per 2 s) — verified with a screen reader or the component test
 
 ---
 

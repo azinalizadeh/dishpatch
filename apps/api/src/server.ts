@@ -6,6 +6,7 @@ import { runMigrations } from './db/migrate.ts';
 import { type Env, EnvError, loadEnv } from './env.ts';
 import { createLogger } from './logger.ts';
 import { createInProcessEventBus } from './realtime/event-bus.ts';
+import type { SseHub } from './realtime/sse-hub.ts';
 
 function readEnv(): Env {
   try {
@@ -29,8 +30,19 @@ const staticDir =
   env.NODE_ENV === 'production'
     ? fileURLToPath(new URL('../../web/dist', import.meta.url))
     : undefined;
-const bus = createInProcessEventBus();
-const app = buildApp({ env, db, clock: systemClock, bus, logger, staticDir });
+const bus = createInProcessEventBus((err) => logger.error({ err }, 'bus subscriber failed'));
+let hub: SseHub | undefined;
+const app = buildApp({
+  env,
+  db,
+  clock: systemClock,
+  bus,
+  logger,
+  staticDir,
+  onHub: (h) => {
+    hub = h;
+  },
+});
 
 const server = app.listen(env.PORT, () => {
   logger.info({ port: env.PORT }, 'api listening');
@@ -42,6 +54,10 @@ function shutdown(signal: string) {
   server.close(() => {
     void db.sql.end({ timeout: 5 }).finally(() => process.exit(0));
   });
+  // Open SSE streams never finish on their own: end them (EventSource reconnects to the next
+  // instance) and drop idle keep-alive sockets, but let in-flight requests finish.
+  hub?.closeAll();
+  server.closeIdleConnections();
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));

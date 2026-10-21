@@ -63,6 +63,8 @@ Existing tools: [Grasshopper Signup](https://grasshoppersignup.com/potluck-signu
 - **Database:** the schema lives in `apps/api/src/db/schema.ts`; migrations are generated with `pnpm db:generate` and committed under `apps/api/migrations/`. `pnpm db:migrate` applies them to the database in `.env`; the API container also applies them on boot (single instance).
 - **Integration tests** clone one migrated template database per test file inside a single Testcontainers Postgres, so files run in parallel.
 - **E2E:** start the stack with the CI override (`docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait`). It sets `TRUST_PROXY=true` so each Playwright test can present its own client IP and stay under the per-IP create limit (5 boards/hour). Never set `TRUST_PROXY=true` outside a known proxy.
+- **Live board (SSE):** the browser loads the snapshot, then opens `GET /api/events/:id/stream?after=<snapshot seq>`; on reconnect `EventSource` sends `Last-Event-ID` and the server replays missed `event_log` rows (or sends `resync` when they're gone). Writes publish only after commit. The client also pauses on the browser's `offline` event and reopens from its seq on `online`, because a dropped network can leave a dead socket open for minutes.
+- **Real-time latency:** `participant.joined` propagation in `e2e/specs/realtime.spec.ts` (20 joins, local Docker stack, 2026-10-21): chromium p50 18 ms, **p95 27 ms**, max 28 ms. The claim-based p95 is measured in M5.
 - **Host links** are shown once on the share screen and kept only in memory; reloading the share screen goes straight to the board.
 
 ## Package contents

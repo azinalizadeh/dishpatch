@@ -1,3 +1,11 @@
+export {
+  applyBoardEvent,
+  BoardEvent,
+  type BoardEventType,
+  type BoardState,
+  isSequenced,
+  SequencedBoardEvent,
+} from './board-events.ts';
 export { CATEGORIES, type Category, LIMITS } from './categories.ts';
 export { DIETARY, DIETARY_LABELS, type Dietary } from './dietary.ts';
 export { ERROR_CODES, type ErrorCode } from './errors.ts';

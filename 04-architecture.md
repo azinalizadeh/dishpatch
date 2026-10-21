@@ -250,7 +250,7 @@ Session = cookie `dp_sess` with `Path=/api/events/<eventId>`, `HttpOnly`, `SameS
 | 3 | `GET /api/invites/:inviteToken` | token | — | 200 `{ title, startsAt, location, hostName, participantCount }` | 404 `INVITE_INVALID` (also used for expired — see note), 429 | 30 / min / IP |
 | 4 | `POST /api/invites/:inviteToken/join` | token | `JoinInput { displayName, dietaryNeeds[] }` | 201 `{ eventId, participantId }` + Set-Cookie | 400, 404 `INVITE_INVALID`, 409 `NAME_TAKEN`, 409 `EVENT_FULL`, 429 | 10 / min / IP |
 | 5 | `GET /api/events/:eventId` | session | — | 200 `Snapshot { event {id,title,startsAt,location,locked}, slots[], participants[{id,displayName,dietaryNeeds,role}], coverage, me {participantId, role}, seq }` | 404 | 120 / min / session |
-| 6 | `GET /api/events/:eventId/stream` | session | header `Last-Event-ID?` | 200 `text/event-stream`: `retry: 3000`, events `slot.claimed`, `slot.released`, `slot.added`, `slot.removed`, `participant.joined`, `event.updated`, `event.deleted`, `presence`, `resync`; comment heartbeat every 20 s | 404, 429 `TOO_MANY_STREAMS` | 5 concurrent / session, 20 / IP |
+| 6 | `GET /api/events/:eventId/stream` | session | header `Last-Event-ID?` (or `?after=<snapshot seq>` on the first connect, since `EventSource` can't set headers) | 200 `text/event-stream`: `retry: 3000`, events `slot.claimed`, `slot.released`, `slot.added`, `slot.removed`, `participant.joined`, `event.updated`, `event.deleted`, `presence`, `resync`; comment heartbeat every 20 s | 404, 429 `TOO_MANY_STREAMS` | 5 concurrent / session, 20 / IP |
 | 7 | `POST /api/events/:eventId/slots/:slotId/claim` | session | `ClaimInput { dishName (1–60), dishTags[] }` | 200 `{ slot, seq }` | 400, 404, 409 `SLOT_TAKEN {claimedBy}`, 409 `CLAIM_LIMIT`, 423 `BOARD_LOCKED`, 403 `BAD_ORIGIN` | 30 / min / session |
 | 8 | `DELETE /api/events/:eventId/slots/:slotId/claim` | session (owner or host) | — | 200 `{ slot, seq }` | 403 `NOT_OWNER`, 404, 409 `NOT_CLAIMED`, 423 `BOARD_LOCKED` | 30 / min / session |
 | 9 | `PATCH /api/events/:eventId` | host | `{ locked: boolean }` | 200 `{ event, seq }` | 400, 403 `HOST_ONLY`, 404 | 30 / min / session |
@@ -314,7 +314,7 @@ dishpatch/
 │   │   ├── drizzle.config.ts
 │   │   ├── migrations/                       # generated SQL, committed
 │   │   ├── src/
-│   │   │   ├── server.ts  app.ts  env.ts
+│   │   │   ├── server.ts  app.ts  env.ts  clock.ts  logger.ts
 │   │   │   ├── middleware/{security.ts, session.ts, rate-limits.ts, origin-check.ts, validate.ts, errors.ts}
 │   │   │   ├── db/{schema.ts, client.ts}
 │   │   │   ├── domain/{tokens.ts, events.ts, participants.ts, claims.ts, host.ts, errors.ts}
@@ -325,7 +325,7 @@ dishpatch/
 │   └── web/
 │       ├── index.html  vite.config.ts
 │       ├── src/
-│       │   ├── main.tsx  router.tsx  format.ts  api/{client.ts, created-board.ts, joined-boards.ts, queries.ts, use-board-stream.ts}
+│       │   ├── main.tsx  router.tsx  format.ts  categories.ts  api/{client.ts, created-board.ts, joined-boards.ts, queries.ts, use-board-stream.ts}
 │       │   ├── styles/{tokens.css, app.css}
 │       │   ├── components/{Button, TextField, Stepper, Chip, Tag, SlotCard, CategoryGroup, CoverageMeter, ConnectionIndicator, Banner, Toast, Dialog, LinkBox, Switch, Avatar, Skeleton}.tsx
 │       │   └── screens/{CreateScreen, ShareScreen, JoinScreen, HostLinkScreen, BoardScreen, ClaimDialog, CoverageScreen, HostScreen, NotFoundScreen}.tsx

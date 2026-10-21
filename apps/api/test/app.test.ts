@@ -43,14 +43,27 @@ describe('app factory (smoke)', () => {
     expect(err).toMatchObject({ status: 409, code: 'SLOT_TAKEN', details: { claimedBy: 'Jonah' } });
   });
 
+  it('in-process bus keeps publishing when one subscriber throws', () => {
+    const errors: unknown[] = [];
+    const bus = createInProcessEventBus((err) => errors.push(err));
+    const got: string[] = [];
+    bus.subscribe('a', () => {
+      throw new Error('socket gone');
+    });
+    bus.subscribe('a', (m) => got.push(m.type));
+    expect(() => bus.publish('a', { type: 'resync' })).not.toThrow();
+    expect(got).toEqual(['resync']);
+    expect(errors).toHaveLength(1);
+  });
+
   it('in-process bus delivers to subscribers of the same event only', () => {
     const bus = createInProcessEventBus();
     const got: string[] = [];
     const off = bus.subscribe('a', (m) => got.push(m.type));
     bus.subscribe('b', (m) => got.push(`b:${m.type}`));
-    bus.publish('a', { type: 'one' });
+    bus.publish('a', { type: 'resync' });
     off();
-    bus.publish('a', { type: 'two' });
-    expect(got).toEqual(['one']);
+    bus.publish('a', { type: 'presence', count: 1 });
+    expect(got).toEqual(['resync']);
   });
 });

@@ -10,18 +10,11 @@ import { useNavigate } from 'react-router';
 import { ApiRequestError, NetworkError, postJson } from '../api/client.ts';
 import { rememberCreatedBoard } from '../api/created-board.ts';
 import { rememberJoin } from '../api/joined-boards.ts';
+import { CATEGORY_LABELS } from '../categories.ts';
 import { Banner } from '../components/Banner.tsx';
 import { Button } from '../components/Button.tsx';
 import { Stepper } from '../components/Stepper.tsx';
 import { TextField } from '../components/TextField.tsx';
-
-const CATEGORY_LABELS: Record<Category, { plural: string; dot: string }> = {
-  main: { plural: 'Mains', dot: 'bg-cat-main' },
-  side: { plural: 'Sides', dot: 'bg-cat-side' },
-  salad: { plural: 'Salads', dot: 'bg-cat-salad' },
-  dessert: { plural: 'Desserts', dot: 'bg-cat-dessert' },
-  drinks: { plural: 'Drinks', dot: 'bg-cat-drinks' },
-};
 
 const DEFAULT_COUNTS: Record<Category, number> = {
   main: 3,

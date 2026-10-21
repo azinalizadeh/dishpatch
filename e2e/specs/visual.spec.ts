@@ -76,7 +76,7 @@ for (const { suffix, options } of VARIANTS) {
     await shot(page, `share${suffix}`);
     if (!suffix.endsWith('-dark')) {
       await page.getByRole('button', { name: 'Copy invite link' }).click();
-      await page.getByRole('status').filter({ hasText: 'Invite link copied' }).waitFor();
+      await page.getByText('Invite link copied').waitFor();
       await page.getByRole('button', { name: 'Copy invite link' }).blur();
       await shot(page, `share-copied${suffix}`);
     }
@@ -154,6 +154,88 @@ for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-da
     await page.getByRole('alert').waitFor();
     await page.getByRole('alert').blur();
     await shot(page, `create-error${suffix}`);
+    await context.close();
+  });
+}
+
+/**
+ * The mockup's board with no claims yet (claims arrive with F4): 12 slots, Mina hosting, five
+ * guests joined, viewed by Priya. Returns Priya's page on the board.
+ */
+async function openMockupBoardAsPriya(
+  browser: Browser,
+  options: BrowserContextOptions,
+  baseURL: string | undefined,
+) {
+  const host = await open(browser, options);
+  const now = new Date();
+  const year =
+    now < new Date(now.getFullYear(), 10, 21, 18) ? now.getFullYear() : now.getFullYear() + 1;
+  const headers = { Origin: new URL(baseURL ?? 'http://localhost:3000').origin };
+  const res = await host.page.request.post('/api/events', {
+    headers,
+    data: {
+      title: "Friendsgiving at Mina's",
+      startsAt: new Date(`${year}-11-21T18:00:00Z`).toISOString(),
+      location: "Mina's flat, 3rd floor",
+      hostName: 'Mina',
+      hostDietaryNeeds: [],
+      slots: [
+        { category: 'main', count: 3 },
+        { category: 'side', count: 3 },
+        { category: 'salad', count: 2 },
+        { category: 'dessert', count: 2 },
+        { category: 'drinks', count: 2 },
+      ],
+    },
+  });
+  const { eventId, inviteUrl } = (await res.json()) as { eventId: string; inviteUrl: string };
+  const join = `/api/invites/${new URL(inviteUrl).pathname.split('/').pop()}/join`;
+  const guests: [string, string[]][] = [
+    ['Reza', ['halal']],
+    ['Sam', []],
+    ['Leila', ['nut_free']],
+    ['Jonah', ['gluten_free']],
+  ];
+  for (const [displayName, dietaryNeeds] of guests) {
+    await host.page.request.post(join, { headers, data: { displayName, dietaryNeeds } });
+  }
+  await host.context.close();
+  const priya = await open(browser, options);
+  await priya.page.request.post(join, {
+    headers,
+    data: { displayName: 'Priya', dietaryNeeds: ['vegan'] },
+  });
+  return { ...priya, eventId };
+}
+
+for (const { suffix, options } of VARIANTS) {
+  test(`board-empty${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL);
+    await page.goto(`/events/${eventId}`);
+    await page.getByText('Live').first().waitFor();
+    await shot(page, `board-empty${suffix}`);
+    await context.close();
+  });
+
+  test(`board-offline${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL);
+    await page.goto(`/events/${eventId}`);
+    await page.getByText('Live').first().waitFor();
+    await context.setOffline(true);
+    await page.getByText(/Connection lost/).waitFor();
+    await shot(page, `board-offline${suffix}`);
+    await context.close();
+  });
+}
+
+for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-dark'))) {
+  test(`board-loading${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL);
+    await page.route('**/api/events/*', () => {}); // never answers
+    await page.goto(`/events/${eventId}`);
+    await page.getByRole('status', { name: 'Loading the board' }).waitFor();
+    await shot(page, `board-loading${suffix}`);
     await context.close();
   });
 }

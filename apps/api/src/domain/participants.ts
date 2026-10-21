@@ -2,8 +2,9 @@ import { type InvitePreview, type JoinInput, LIMITS, TokenParam } from '@dishpat
 import { and, count, eq, gt, sql } from 'drizzle-orm';
 import type { Clock } from '../clock.ts';
 import type { Db } from '../db/client.ts';
-import { eventLog, events, participants, sessions } from '../db/schema.ts';
+import { events, participants, sessions } from '../db/schema.ts';
 import type { EventBus } from '../realtime/event-bus.ts';
+import { recordAndPublish } from '../realtime/event-log.ts';
 import { eventFull, inviteInvalid, nameTaken } from './errors.ts';
 import { generateToken, hashToken } from './tokens.ts';
 
@@ -68,9 +69,9 @@ export async function joinEvent(
   const now = clock.now();
   const sessionToken = generateToken();
 
-  const joined = await db.orm.transaction(async (tx) => {
+  const joined = await recordAndPublish(db, bus, clock, async (tx, record) => {
     const [event] = await tx
-      .select({ id: events.id, seq: events.seq, expiresAt: events.expiresAt })
+      .select({ id: events.id, expiresAt: events.expiresAt })
       .from(events)
       .where(liveInvite(token, now))
       .for('update');
@@ -112,29 +113,18 @@ export async function joinEvent(
       expiresAt: event.expiresAt,
     });
 
-    const seq = event.seq + 1;
-    await tx.update(events).set({ seq }).where(eq(events.id, event.id));
-    const message = {
+    await record(event.id, {
       type: 'participant.joined',
-      seq,
       participant: {
         id: guest.id,
         displayName: input.displayName,
         dietaryNeeds: input.dietaryNeeds,
-        role: 'guest' as const,
+        role: 'guest',
       },
-    };
-    await tx.insert(eventLog).values({
-      eventId: event.id,
-      seq,
-      type: message.type,
-      payload: { participant: message.participant },
-      createdAt: now,
     });
-    return { eventId: event.id, participantId: guest.id, expiresAt: event.expiresAt, message };
+    return { eventId: event.id, participantId: guest.id, expiresAt: event.expiresAt };
   });
 
-  bus.publish(joined.eventId, joined.message);
   return {
     eventId: joined.eventId,
     participantId: joined.participantId,

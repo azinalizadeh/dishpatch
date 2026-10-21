@@ -1,15 +1,12 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createdBoard, forgetCreatedBoard } from '../src/api/created-board.ts';
-import { routes } from '../src/router.tsx';
+import { renderRoutes } from './render-routes.tsx';
 
 const fetchMock = vi.fn<typeof fetch>();
 
 function renderCreate() {
-  const router = createMemoryRouter(routes, { initialEntries: ['/'] });
-  render(<RouterProvider router={router} />);
-  return router;
+  return renderRoutes('/');
 }
 
 function fill(label: string | RegExp, value: string) {

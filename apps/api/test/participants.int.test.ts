@@ -1,4 +1,4 @@
-import { LIMITS } from '@dishpatch/shared';
+import { type BoardEvent, LIMITS } from '@dishpatch/shared';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { friendsgivingPayload } from '../../../packages/shared/test/fixtures/create-event.ts';
@@ -7,7 +7,7 @@ import { DomainError } from '../src/domain/errors.ts';
 import { createEvent } from '../src/domain/events.ts';
 import { joinEvent, previewInvite } from '../src/domain/participants.ts';
 import { generateToken, hashToken } from '../src/domain/tokens.ts';
-import { type BusMessage, createInProcessEventBus } from '../src/realtime/event-bus.ts';
+import { createInProcessEventBus } from '../src/realtime/event-bus.ts';
 import { useTestDb } from './helpers/int-app.ts';
 import { fixedClock } from './helpers/test-app.ts';
 
@@ -33,7 +33,7 @@ describe('participant service', () => {
   it('join creates a guest participant and a session hash', async () => {
     const created = await createEvent(db, clock, input());
     const bus = createInProcessEventBus();
-    const published: BusMessage[] = [];
+    const published: BoardEvent[] = [];
     bus.subscribe(created.eventId, (m) => published.push(m));
 
     const joined = await joinEvent(db, clock, bus, created.inviteToken, {
