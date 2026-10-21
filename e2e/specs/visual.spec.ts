@@ -158,14 +158,25 @@ for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-da
   });
 }
 
+/** The mockup's six claims (design/screens/board.png): [who, category index slot, dish, tags]. */
+const MOCKUP_CLAIMS: [string, number, string, string[]][] = [
+  ['Mina', 1, 'Roast chicken & sumac onions', ['gluten_free', 'halal']],
+  ['Reza', 0, 'Ghormeh sabzi', ['gluten_free', 'dairy_free', 'halal']],
+  ['Sam', 3, 'Crispy tahdig', ['vegetarian', 'halal']],
+  ['Leila', 8, 'Saffron rice pudding', ['vegetarian', 'gluten_free']],
+  ['Jonah', 6, 'Shirazi salad', ['vegan', 'gluten_free']],
+  ['Priya', 4, 'Garlic green beans', ['vegan', 'gluten_free']],
+];
+
 /**
- * The mockup's board with no claims yet (claims arrive with F4): 12 slots, Mina hosting, five
- * guests joined, viewed by Priya. Returns Priya's page on the board.
+ * The mockup's board: 12 slots, Mina hosting, five guests joined, viewed by Priya; with
+ * `withClaims`, the six claimed dishes too. Returns Priya's page on the board.
  */
 async function openMockupBoardAsPriya(
   browser: Browser,
   options: BrowserContextOptions,
   baseURL: string | undefined,
+  { withClaims = false } = {},
 ) {
   const host = await open(browser, options);
   const now = new Date();
@@ -191,6 +202,19 @@ async function openMockupBoardAsPriya(
   });
   const { eventId, inviteUrl } = (await res.json()) as { eventId: string; inviteUrl: string };
   const join = `/api/invites/${new URL(inviteUrl).pathname.split('/').pop()}/join`;
+  const slotsRes = await host.page.request.get(`/api/events/${eventId}`);
+  const slotIds = ((await slotsRes.json()) as { slots: { id: string }[] }).slots.map((s) => s.id);
+  // Each join replaces the session cookie in this request context, so whoever joined last claims.
+  const claimAs = async (request: typeof host.page.request, who: string) => {
+    const claim = withClaims && MOCKUP_CLAIMS.find(([name]) => name === who);
+    if (!claim) return;
+    const [, index, dishName, dishTags] = claim;
+    await request.post(`/api/events/${eventId}/slots/${slotIds[index]}/claim`, {
+      headers,
+      data: { dishName, dishTags },
+    });
+  };
+  await claimAs(host.page.request, 'Mina');
   const guests: [string, string[]][] = [
     ['Reza', ['halal']],
     ['Sam', []],
@@ -199,6 +223,7 @@ async function openMockupBoardAsPriya(
   ];
   for (const [displayName, dietaryNeeds] of guests) {
     await host.page.request.post(join, { headers, data: { displayName, dietaryNeeds } });
+    await claimAs(host.page.request, displayName);
   }
   await host.context.close();
   const priya = await open(browser, options);
@@ -206,6 +231,7 @@ async function openMockupBoardAsPriya(
     headers,
     data: { displayName: 'Priya', dietaryNeeds: ['vegan'] },
   });
+  await claimAs(priya.page.request, 'Priya');
   return { ...priya, eventId };
 }
 
@@ -236,6 +262,80 @@ for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-da
     await page.goto(`/events/${eventId}`);
     await page.getByRole('status', { name: 'Loading the board' }).waitFor();
     await shot(page, `board-loading${suffix}`);
+    await context.close();
+  });
+}
+
+/** The claim dialog over the mockup board, on the one open main (slot 3; the mockup shows "slot 2 of 3"). */
+async function openClaimDialog(page: Page, eventId: string) {
+  await page.goto(`/events/${eventId}`);
+  await page.getByText('Live').first().waitFor();
+  await page.getByRole('button', { name: 'Claim open Mains slot 3' }).click();
+  const dialog = page.getByRole('dialog', { name: 'What are you bringing?' });
+  await dialog.getByLabel('Dish').fill('Mushroom & chestnut pie');
+  for (const tag of ['Vegetarian', 'Vegan', 'Dairy-free', 'Halal']) {
+    await dialog.getByRole('button', { name: tag }).click();
+  }
+  return dialog;
+}
+
+for (const { suffix, options } of VARIANTS) {
+  test(`board${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL, {
+      withClaims: true,
+    });
+    await page.goto(`/events/${eventId}`);
+    await page.getByText('Live').first().waitFor();
+    await shot(page, `board${suffix}`);
+    await context.close();
+  });
+
+  test(`claim${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL, {
+      withClaims: true,
+    });
+    await openClaimDialog(page, eventId);
+    await shot(page, `claim${suffix}`);
+    await context.close();
+  });
+
+  test(`claim-error${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL, {
+      withClaims: true,
+    });
+    const dialog = await openClaimDialog(page, eventId);
+    // The server answers as if Jonah won the race, without changing the board behind the dialog.
+    await page.route('**/api/events/*/slots/*/claim', (route) =>
+      route.fulfill({
+        status: 409,
+        json: {
+          error: {
+            code: 'SLOT_TAKEN',
+            message: 'Jonah just claimed this slot.',
+            requestId: 'visual',
+            claimedBy: 'Jonah',
+          },
+        },
+      }),
+    );
+    await dialog.getByRole('button', { name: 'Claim slot' }).click();
+    await dialog.getByRole('alert').waitFor();
+    await dialog.getByRole('alert').blur();
+    await shot(page, `claim-error${suffix}`);
+    await context.close();
+  });
+}
+
+for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-dark'))) {
+  test(`claim-submitting${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL, {
+      withClaims: true,
+    });
+    const dialog = await openClaimDialog(page, eventId);
+    await page.route('**/api/events/*/slots/*/claim', () => {}); // never answers
+    await dialog.getByRole('button', { name: 'Claim slot' }).click();
+    await dialog.getByRole('button', { name: 'Claiming…' }).waitFor();
+    await shot(page, `claim-submitting${suffix}`);
     await context.close();
   });
 }

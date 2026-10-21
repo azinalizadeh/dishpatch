@@ -61,3 +61,45 @@ export async function openLiveBoard(page: Page, eventId: string) {
 }
 
 export const guestList = (page: Page) => page.getByRole('list', { name: "Who's coming" });
+
+interface SlotSummary {
+  id: string;
+  category: string;
+  claimedBy: { displayName: string } | null;
+}
+
+/** The board's slots in display order, read with a member's `request`. */
+export async function boardSlots(request: APIRequestContext, eventId: string) {
+  const res = await request.get(`/api/events/${eventId}`);
+  expect(res.status()).toBe(200);
+  return ((await res.json()) as { slots: SlotSummary[] }).slots;
+}
+
+/** Claims `slotId` through the API as whoever's session `request` holds for the board. */
+export async function claimSlot(
+  request: APIRequestContext,
+  baseURL: string | undefined,
+  eventId: string,
+  slotId: string,
+  dishName: string,
+  dishTags: string[] = [],
+) {
+  const res = await request.post(`/api/events/${eventId}/slots/${slotId}/claim`, {
+    headers: { Origin: originOf(baseURL) },
+    data: { dishName, dishTags },
+  });
+  expect(res.status()).toBe(200);
+}
+
+/** Releases `slotId` through the API. */
+export async function releaseSlot(
+  request: APIRequestContext,
+  baseURL: string | undefined,
+  eventId: string,
+  slotId: string,
+) {
+  const res = await request.delete(`/api/events/${eventId}/slots/${slotId}/claim`, {
+    headers: { Origin: originOf(baseURL) },
+  });
+  expect(res.status()).toBe(200);
+}

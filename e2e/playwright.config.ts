@@ -30,7 +30,7 @@ export default defineConfig({
     },
     {
       name: 'firefox-desktop',
-      testMatch: /(realtime|reconnect)\.spec\.ts$/,
+      testMatch: /(realtime|reconnect|claim-race-ui|xss)\.spec\.ts$/,
       use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } },
     },
   ],
