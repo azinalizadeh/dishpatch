@@ -8,9 +8,10 @@ import { post, sessionCookie } from './helpers/requests.ts';
 import { fixedClock } from './helpers/test-app.ts';
 
 const clock = fixedClock('2026-10-20T12:00:00Z');
+// The shared schema checks "in the future" against the real clock, so the date must stay ahead of it.
 const payload = () => ({
   ...friendsgivingPayload(clock.now()),
-  startsAt: '2026-11-21T17:00:00.000Z',
+  startsAt: '2099-11-21T17:00:00.000Z',
 });
 
 describe('POST /api/events', () => {
@@ -27,8 +28,8 @@ describe('POST /api/events', () => {
 
     const cookie = sessionCookie(res.headers['set-cookie']);
     expect(cookie?.value).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    // 2026-10-20T12:00Z → expires_at 2026-12-05T17:00Z
-    const maxAge = (Date.parse('2026-12-05T17:00:00Z') - Date.parse('2026-10-20T12:00:00Z')) / 1000;
+    // 2026-10-20T12:00Z → expires_at 2099-12-05T17:00Z
+    const maxAge = (Date.parse('2099-12-05T17:00:00Z') - Date.parse('2026-10-20T12:00:00Z')) / 1000;
     expect(cookie?.attributes).toEqual(
       expect.arrayContaining([
         'httponly',

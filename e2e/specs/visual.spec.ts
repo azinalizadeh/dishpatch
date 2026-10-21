@@ -50,7 +50,11 @@ async function shot(page: Page, name: string) {
 async function fillMockupForm(page: Page, { past = false, withName = true } = {}) {
   await page.goto('/');
   await page.getByLabel('Event name').fill("Friendsgiving at Mina's");
-  await page.getByLabel('Date & time').fill(past ? '2024-11-01T18:00' : '2026-11-21T18:00');
+  // The mockup's date (21 Nov, 18:00), moved to next year once it has passed.
+  const now = new Date();
+  const year =
+    now < new Date(now.getFullYear(), 10, 21, 18) ? now.getFullYear() : now.getFullYear() + 1;
+  await page.getByLabel('Date & time').fill(past ? '2024-11-01T18:00' : `${year}-11-21T18:00`);
   await page.getByLabel('Where').fill("Mina's flat, 3rd floor");
   if (withName) await page.getByLabel('Your name').fill('Mina');
 }
