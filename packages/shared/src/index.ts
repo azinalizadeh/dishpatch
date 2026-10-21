@@ -20,6 +20,8 @@ export {
 export { DIETARY, DIETARY_LABELS, type Dietary } from './dietary.ts';
 export { ERROR_CODES, type ErrorCode } from './errors.ts';
 export {
+  AddSlotInput,
+  AddSlotResponse,
   type ApiError,
   ApiErrorSchema,
   CategorySchema,
@@ -27,15 +29,21 @@ export {
   ClaimResponse,
   CreateEventInput,
   CreateEventResponse,
+  DeleteEventInput,
   DietarySchema,
   HostLinkResponse,
   IdParam,
   InvitePreview,
   JoinInput,
   JoinResponse,
+  NeedCoverageView,
   ParticipantView,
+  RotateInviteResponse,
+  SeqResponse,
   SlotCountInput,
   SlotView,
   Snapshot,
   TokenParam,
+  UpdateEventInput,
+  UpdateEventResponse,
 } from './schemas.ts';

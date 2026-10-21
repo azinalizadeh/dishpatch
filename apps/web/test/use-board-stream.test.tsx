@@ -20,6 +20,7 @@ const snapshot = (seq: number): Snapshot => ({
   },
   slots: [],
   participants: [{ id: hostId, displayName: 'Mina', dietaryNeeds: [], role: 'host' }],
+  coverage: [],
   me: { participantId: hostId, role: 'host' },
   seq,
 });

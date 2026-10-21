@@ -4,6 +4,7 @@ import { systemClock } from './clock.ts';
 import { createDb } from './db/client.ts';
 import { runMigrations } from './db/migrate.ts';
 import { type Env, EnvError, loadEnv } from './env.ts';
+import { startCleanup } from './jobs/cleanup.ts';
 import { createLogger } from './logger.ts';
 import { createInProcessEventBus } from './realtime/event-bus.ts';
 import type { SseHub } from './realtime/sse-hub.ts';
@@ -49,8 +50,18 @@ const server = app.listen(env.PORT, () => {
 });
 server.keepAliveTimeout = 65_000;
 
+// F6.3: once at boot, then every CLEANUP_INTERVAL_MINUTES.
+const stopCleanup = startCleanup({
+  db,
+  clock: systemClock,
+  bus,
+  logger,
+  intervalMinutes: env.CLEANUP_INTERVAL_MINUTES,
+});
+
 function shutdown(signal: string) {
   logger.info({ signal }, 'shutting down');
+  stopCleanup();
   server.close(() => {
     void db.sql.end({ timeout: 5 }).finally(() => process.exit(0));
   });

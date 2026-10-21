@@ -34,6 +34,7 @@ function snapshot(slots: SlotView[] = [open(1, 0), open(2, 1), open(3, 2)]): Sna
       { id: meId, displayName: 'Priya', dietaryNeeds: ['vegan'], role: 'guest' },
       { id: jonahId, displayName: 'Jonah', dietaryNeeds: [], role: 'guest' },
     ],
+    coverage: [],
     me: { participantId: meId, role: 'guest' },
     seq: 5,
   };

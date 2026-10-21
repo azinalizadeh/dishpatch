@@ -74,6 +74,15 @@ const perSession = (windowMs: number, limit: number, message: string) =>
     },
   });
 
+/** Keyed by the board in the path, whoever calls (rotation is per board, not per device). */
+const perEvent = (windowMs: number, limit: number, message: string) =>
+  limiter(windowMs, limit, message, {
+    keyGenerator: (req: Request) => {
+      const eventId = req.params.eventId;
+      return `event:${typeof eventId === 'string' ? eventId : ''}`;
+    },
+  });
+
 /**
  * Limits from 04-architecture.md › API contract. Built per app instance, so each `buildApp()`
  * (and each test) starts with empty counters.
@@ -86,6 +95,9 @@ export function createRateLimits() {
     join: perIp(MINUTE, 10, 'Too many tries. Wait a minute and try again.'),
     snapshot: perSession(MINUTE, 120, 'Too many requests. Wait a minute and try again.'),
     claims: perSession(MINUTE, 30, "You're claiming very fast. Wait a minute and try again."),
+    hostActions: perSession(MINUTE, 30, "You're changing things very fast. Wait a minute."),
+    rotateInvite: perEvent(HOUR, 5, "You've made a lot of new links — try again in a bit."),
+    deleteEvent: perSession(HOUR, 5, 'Too many tries. Wait a bit and try again.'),
     boardMisses: notFoundsPerIp(MINUTE, 30, 'Too many tries. Wait a minute and try again.'),
   };
 }

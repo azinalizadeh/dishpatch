@@ -34,6 +34,7 @@ function board(overrides: Partial<Snapshot> = {}): Snapshot {
     },
     slots: [openSlot(SLOT_A, 0), openSlot(SLOT_B, 1)],
     participants: [{ id: HOST, displayName: 'Mina', dietaryNeeds: [], role: 'host' }],
+    coverage: [],
     me: { participantId: HOST, role: 'host' },
     seq: 3,
     ...overrides,

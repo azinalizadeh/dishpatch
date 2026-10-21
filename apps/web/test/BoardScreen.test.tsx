@@ -48,6 +48,7 @@ function snapshot(overrides: Partial<Snapshot> = {}): Snapshot {
       { id: hostId, displayName: 'Mina', dietaryNeeds: [], role: 'host' },
       { id: guestId, displayName: 'Reza', dietaryNeeds: ['halal'], role: 'guest' },
     ],
+    coverage: [],
     me: { participantId: guestId, role: 'guest' },
     seq: 3,
     ...overrides,

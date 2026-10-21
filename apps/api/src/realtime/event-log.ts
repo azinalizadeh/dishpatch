@@ -11,10 +11,20 @@ type Tx = Parameters<Parameters<Db['orm']['transaction']>[0]>[0];
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 export type UnsequencedChange = DistributiveOmit<SequencedBoardEvent, 'seq'>;
 
+/**
+ * Changes that are logged (actor trail, 07-security.md › R1) and bump `seq`, but never reach the
+ * stream: nothing on the board changes for viewers. Replay skips them and the SSE hub fills the
+ * seq gap they leave from the log.
+ */
+export type LogOnlyChange = { type: 'invite.rotated' };
+
 export type RecordChange = (
   eventId: string,
-  change: UnsequencedChange,
-) => Promise<SequencedBoardEvent>;
+  change: UnsequencedChange | LogOnlyChange,
+) => Promise<{ seq: number }>;
+
+const isLogOnly = (change: UnsequencedChange | LogOnlyChange): change is LogOnlyChange =>
+  change.type === 'invite.rotated';
 
 /**
  * Runs one board mutation (04-architecture.md › Write path). Inside `work`, `record` bumps
@@ -42,9 +52,10 @@ export async function recordAndPublish<T>(
       await tx
         .insert(eventLog)
         .values({ eventId, seq: row.seq, type, payload, createdAt: clock.now() });
-      const msg = { ...change, seq: row.seq } as SequencedBoardEvent;
-      outbox.push({ eventId, msg });
-      return msg;
+      if (!isLogOnly(change)) {
+        outbox.push({ eventId, msg: { ...change, seq: row.seq } as SequencedBoardEvent });
+      }
+      return { seq: row.seq };
     };
     return work(tx, record);
   });

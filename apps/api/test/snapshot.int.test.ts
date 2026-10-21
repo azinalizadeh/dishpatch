@@ -1,7 +1,7 @@
-import { Snapshot } from '@dishpatch/shared';
+import { computeCoverage, Snapshot } from '@dishpatch/shared';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { clock, createBoard } from './helpers/boards.ts';
+import { clock, createBoard, createMockupBoard } from './helpers/boards.ts';
 import { intApp, useTestDb } from './helpers/int-app.ts';
 import { post, sessionCookie } from './helpers/requests.ts';
 
@@ -31,6 +31,37 @@ describe('GET /api/events/:eventId', () => {
     ]);
     expect(snapshot.me).toEqual({ participantId: joined.body.participantId, role: 'guest' });
     expect(snapshot.seq).toBe(1);
+  });
+
+  it('snapshot coverage equals computeCoverage of the stored data', async () => {
+    const board = await createMockupBoard(db);
+    const { app } = intApp(db, { clock });
+
+    const res = await request(app)
+      .get(`/api/events/${board.eventId}`)
+      .set('Cookie', `dp_sess=${board.sessionToken}`);
+
+    expect(res.status).toBe(200);
+    const snapshot = Snapshot.parse(res.body);
+    expect(snapshot.coverage).toEqual(computeCoverage(snapshot.participants, snapshot.slots));
+    expect(snapshot.coverage.map((row) => [row.need, row.status])).toEqual([
+      ['nut_free', 'gap'],
+      ['vegan', 'thin'],
+      ['halal', 'ok'],
+      ['gluten_free', 'ok'],
+    ]);
+  });
+
+  it("coverage counts only this board's participants (I4)", async () => {
+    const board = await createBoard(db);
+    await createMockupBoard(db);
+    const { app } = intApp(db, { clock });
+
+    const res = await request(app)
+      .get(`/api/events/${board.eventId}`)
+      .set('Cookie', `dp_sess=${board.sessionToken}`);
+
+    expect(Snapshot.parse(res.body).coverage).toEqual([]);
   });
 
   it('returns 404 (not 403) without a session for an existing event', async () => {
