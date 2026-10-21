@@ -16,7 +16,8 @@ export interface CleanupResult {
 /**
  * Deletes expired boards (14 days after the party; the foreign keys cascade to participants,
  * sessions, slots and log rows) and event-log rows older than 24 h (07-security.md › Privacy).
- * Anyone still viewing an expired board is told it's gone.
+ * Anyone still viewing an expired board is told it's gone, as after a host delete. The two
+ * deletes are independent (each is safe on its own), so they don't share a transaction.
  */
 export async function runCleanup(db: Db, clock: Clock, bus: EventBus): Promise<CleanupResult> {
   const now = clock.now();

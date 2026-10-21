@@ -1,6 +1,8 @@
-import { computeCoverage, Snapshot } from '@dishpatch/shared';
+import { computeCoverage, type Dietary, Snapshot } from '@dishpatch/shared';
+import { eq } from 'drizzle-orm';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { participants, slots } from '../src/db/schema.ts';
 import { clock, createBoard, createMockupBoard } from './helpers/boards.ts';
 import { intApp, useTestDb } from './helpers/int-app.ts';
 import { post, sessionCookie } from './helpers/requests.ts';
@@ -43,7 +45,29 @@ describe('GET /api/events/:eventId', () => {
 
     expect(res.status).toBe(200);
     const snapshot = Snapshot.parse(res.body);
-    expect(snapshot.coverage).toEqual(computeCoverage(snapshot.participants, snapshot.slots));
+    // Recomputed from the rows in the database, not from the response's own lists.
+    const people = await db.orm
+      .select({ dietaryNeeds: participants.dietaryNeeds })
+      .from(participants)
+      .where(eq(participants.eventId, board.eventId));
+    const rows = await db.orm
+      .select({
+        id: slots.id,
+        category: slots.category,
+        claimedBy: slots.claimedBy,
+        dishTags: slots.dishTags,
+      })
+      .from(slots)
+      .where(eq(slots.eventId, board.eventId));
+    const stored = computeCoverage(
+      people.map((p) => ({ dietaryNeeds: p.dietaryNeeds as Dietary[] })),
+      rows.map((r) => ({
+        ...r,
+        claimedBy: r.claimedBy ? { id: r.claimedBy, displayName: '' } : null,
+        dishTags: r.dishTags as Dietary[],
+      })),
+    );
+    expect(snapshot.coverage).toEqual(stored);
     expect(snapshot.coverage.map((row) => [row.need, row.status])).toEqual([
       ['nut_free', 'gap'],
       ['vegan', 'thin'],

@@ -1,7 +1,7 @@
 import { CATEGORIES, type Category, LIMITS, type Snapshot } from '@dishpatch/shared';
-import { type FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
-import { ApiRequestError, NetworkError } from '../api/client.ts';
+import { type FormEvent, useCallback, useId, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import { ApiRequestError } from '../api/client.ts';
 import {
   useAddSlot,
   useDeleteBoard,
@@ -11,10 +11,13 @@ import {
 } from '../api/queries.ts';
 import { useBoardStream } from '../api/use-board-stream.ts';
 import { CATEGORY_LABELS } from '../categories.ts';
-import { useShell } from '../components/AppShell.tsx';
-import { Banner } from '../components/Banner.tsx';
+import {
+  BackToBoard,
+  CARD,
+  LoadFailedBanner,
+  useConnectionInHeader,
+} from '../components/BoardPage.tsx';
 import { Button } from '../components/Button.tsx';
-import { ConnectionIndicator } from '../components/ConnectionIndicator.tsx';
 import { Dialog } from '../components/Dialog.tsx';
 import { LinkBox } from '../components/LinkBox.tsx';
 import { Skeleton } from '../components/Skeleton.tsx';
@@ -22,21 +25,20 @@ import { Stepper } from '../components/Stepper.tsx';
 import { Switch } from '../components/Switch.tsx';
 import { TextField } from '../components/TextField.tsx';
 import { Toast, type ToastAction, type ToastRole } from '../components/Toast.tsx';
-import { BackToBoard } from './CoverageScreen.tsx';
 import { NotFoundScreen } from './NotFoundScreen.tsx';
 
-const panel = 'rounded-lg border bg-surface p-s5 shadow-e1';
-const card = `${panel} border-border`;
+const card = CARD;
+const dangerCard = 'rounded-lg border border-error bg-surface p-s5 shadow-e1';
 /** A setting row: text, then its control — stacked on mobile, side by side from tablet up. */
 const setting =
   'flex flex-col items-start gap-s4 tablet:flex-row tablet:items-center tablet:justify-between';
+/** The one error toast for a host control that didn't save (03-design.md › host › error). */
 const SAVE_FAILED = "Couldn't save — try again";
-
-/** Toast copy for a failed host action: the API's own message, or "couldn't save". */
-function failureCopy(err: unknown): string {
-  if (err instanceof ApiRequestError && err.code !== 'INTERNAL') return err.message;
-  return SAVE_FAILED;
-}
+/** Inline under the slot steppers (02-user-flows.md › Flow F › F12, F15). */
+const SLOT_ERRORS: Record<string, string> = {
+  SLOT_CLAIMED: 'Remove the claim first — someone just claimed that slot.',
+  SLOT_LIMIT: `A board can have up to ${LIMITS.slotsTotalMax} slots, ${LIMITS.slotsPerCategoryMax} per category.`,
+};
 
 interface ToastState {
   message: string;
@@ -46,12 +48,12 @@ interface ToastState {
 
 /**
  * Host settings (F6.4, 03-design.md › host): lock, new invite link, slot counts and delete.
- * Guests who open this address go back to the board; the API refuses them anyway (E1).
+ * A guest who opens this address gets notfound (02-user-flows.md › Flow F); the API refuses
+ * them anyway (E1).
  */
 export function HostScreen() {
   const { eventId = '' } = useParams();
   const { query, board, connection, presence } = useBoardStream(eventId);
-  const { setHeaderEnd } = useShell();
   const [toast, setToast] = useState<ToastState | null>(null);
   const showToast = useCallback(
     (message: string, role: ToastRole = 'status', action?: ToastAction) =>
@@ -60,13 +62,9 @@ export function HostScreen() {
   );
   const dismissToast = useCallback(() => setToast(null), []);
 
-  useEffect(() => {
-    setHeaderEnd(<ConnectionIndicator connection={connection} presence={presence} />);
-  }, [setHeaderEnd, connection, presence]);
-  useEffect(() => () => setHeaderEnd(null), [setHeaderEnd]);
+  useConnectionInHeader(connection, presence);
 
-  if (connection === 'notfound') return <NotFoundScreen />;
-  if (board && board.me.role !== 'host') return <Navigate to=".." relative="path" replace />;
+  if (connection === 'notfound' || (board && board.me.role !== 'host')) return <NotFoundScreen />;
 
   let content = (
     <div role="status" aria-label="Loading host settings" className="flex flex-col gap-s4">
@@ -78,20 +76,7 @@ export function HostScreen() {
   if (board) {
     content = <HostSettings board={board} onToast={showToast} />;
   } else if (query.isError) {
-    content = (
-      <Banner
-        tone="error"
-        icon="!"
-        role="alert"
-        action={
-          <Button variant="ghost" size="sm" onClick={() => void query.refetch()}>
-            Try again
-          </Button>
-        }
-      >
-        Something broke on our side. Please try again.
-      </Banner>
-    );
+    content = <LoadFailedBanner onRetry={() => void query.refetch()} />;
   }
 
   return (
@@ -123,13 +108,13 @@ function HostSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
   const toggleLock = (locked: boolean) =>
     setLocked.mutate(locked, {
       onSuccess: () => onToast(locked ? 'Board locked' : 'Board unlocked'),
-      onError: (err) => onToast(failureCopy(err), 'alert'),
+      onError: () => onToast(SAVE_FAILED, 'alert'),
     });
 
   const copy = (url: string) => () => {
     void navigator.clipboard.writeText(url).then(
       () => onToast('Invite link copied'),
-      () => onToast("Couldn't copy — select the link and copy it yourself.", 'alert'),
+      () => onToast('Press Ctrl/⌘+C to copy', 'alert'),
     );
   };
 
@@ -139,7 +124,7 @@ function HostSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
         setInviteUrl(url);
         onToast('New invite link ready', 'status', { label: 'Copy', onClick: copy(url) });
       },
-      onError: (err) => onToast(failureCopy(err), 'alert'),
+      onError: () => onToast(SAVE_FAILED, 'alert'),
     });
 
   return (
@@ -182,14 +167,14 @@ function HostSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
             url={inviteUrl}
             copyLabel="Copy the new invite link"
             onCopied={() => onToast('Invite link copied')}
-            onCopyFailed={() => onToast("Couldn't copy — the full link is selected.", 'alert')}
+            onCopyFailed={() => onToast('Press Ctrl/⌘+C to copy', 'alert')}
           />
         ) : null}
       </div>
 
       <SlotSettings board={board} onToast={onToast} />
 
-      <div className={`${panel} ${setting} border-error`}>
+      <div className={`${dangerCard} ${setting}`}>
         <div>
           <h2 className="text-lg leading-[1.3]">Delete this board</h2>
           <p className="text-sm text-muted">
@@ -215,9 +200,15 @@ function SlotSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
   const remove = useRemoveSlot(eventId);
   const busy = add.isPending || remove.isPending;
   const total = board.slots.length;
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const change = (category: Category, next: number, current: number) => {
-    const onError = (err: unknown) => onToast(failureCopy(err), 'alert');
+    setInlineError(null);
+    const onError = (err: unknown) => {
+      const inline = err instanceof ApiRequestError ? SLOT_ERRORS[err.code] : undefined;
+      if (inline) setInlineError(inline);
+      else onToast(SAVE_FAILED, 'alert');
+    };
     if (next > current) {
       add.mutate(category, { onError });
       return;
@@ -269,6 +260,11 @@ function SlotSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
           );
         })}
       </ul>
+      {inlineError ? (
+        <p role="alert" className="mt-s2 text-sm font-semibold text-error">
+          {inlineError}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -304,7 +300,7 @@ function DeleteDialog({
           setError(err.message);
           fieldRef.current?.focus();
         } else {
-          onToast(err instanceof NetworkError ? SAVE_FAILED : failureCopy(err), 'alert');
+          onToast(SAVE_FAILED, 'alert');
         }
       },
     });

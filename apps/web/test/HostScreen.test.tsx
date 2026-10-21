@@ -159,19 +159,21 @@ describe('HostScreen', () => {
     ).toBe(true);
   });
 
-  it('shows the API message when a slot is claimed meanwhile', async () => {
+  it('says inline to remove the claim first when a slot was claimed meanwhile', async () => {
     serve(snapshot(), () =>
       apiError(409, 'SLOT_CLAIMED', 'Remove the claim first, then remove the slot.'),
     );
     renderRoutes(`/events/${eventId}/host`);
     fireEvent.click(await screen.findByRole('button', { name: 'Remove an empty side slot' }));
-    expect(await screen.findByText('Remove the claim first, then remove the slot.')).toBeTruthy();
+    const inline = await screen.findByRole('alert');
+    expect(inline.textContent).toBe('Remove the claim first — someone just claimed that slot.');
   });
 
-  it('sends a guest who opens host settings back to the board', async () => {
+  it('a guest who opens host settings gets notfound', async () => {
     serve(snapshot('guest'));
-    const router = renderRoutes(`/events/${eventId}/host`);
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/events/${eventId}`));
+    renderRoutes(`/events/${eventId}/host`);
+    expect(await screen.findByRole('heading', { name: 'Nothing on this plate' })).toBeTruthy();
+    expect(screen.queryByRole('switch')).toBeNull();
   });
 });
 

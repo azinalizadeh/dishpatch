@@ -85,7 +85,7 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
   const submitting = claim.isPending;
   const { singular, dot } = CATEGORY_LABELS[slot.category];
   const inCategory = board.slots.filter((s) => s.category === slot.category);
-  const [improves] = previewCoverage(board, { slotId, dishTags: tags });
+  const [firstImprovement] = previewCoverage(board, { slotId, dishTags: tags });
   const toggle = (tag: Dietary) =>
     setTags((current) =>
       current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag],
@@ -171,9 +171,9 @@ export function ClaimDialog({ board, slotId, onClose, onToast }: ClaimDialogProp
           </div>
         </fieldset>
 
-        {improves && !error ? (
+        {firstImprovement && !error ? (
           <Banner tone="ok" icon="✓" role="status">
-            {previewText(improves, slot.category === 'main')}
+            {previewText(firstImprovement, slot.category === 'main')}
           </Banner>
         ) : null}
 

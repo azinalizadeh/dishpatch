@@ -7,7 +7,7 @@ import {
   type Snapshot,
   topHint,
 } from '@dishpatch/shared';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { ApiRequestError, NetworkError } from '../api/client.ts';
 import {
@@ -18,12 +18,11 @@ import {
 } from '../api/queries.ts';
 import { type Connection, useBoardStream } from '../api/use-board-stream.ts';
 import { CATEGORY_LABELS } from '../categories.ts';
-import { useShell } from '../components/AppShell.tsx';
 import { Avatar } from '../components/Avatar.tsx';
 import { Banner } from '../components/Banner.tsx';
-import { Button, ButtonLink } from '../components/Button.tsx';
+import { CARD as card, LoadFailedBanner, useConnectionInHeader } from '../components/BoardPage.tsx';
+import { ButtonLink } from '../components/Button.tsx';
 import { CategoryGroup, CategoryGroupSkeleton } from '../components/CategoryGroup.tsx';
-import { ConnectionIndicator } from '../components/ConnectionIndicator.tsx';
 import { CoverageMeter } from '../components/CoverageMeter.tsx';
 import { Skeleton } from '../components/Skeleton.tsx';
 import type { OpenSlotState } from '../components/SlotCard.tsx';
@@ -33,8 +32,6 @@ import { coverageSummary } from '../coverage-copy.ts';
 import { formatWhen } from '../format.ts';
 import { ClaimDialog } from './ClaimDialog.tsx';
 import { NotFoundScreen } from './NotFoundScreen.tsx';
-
-const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
 
 /**
  * The live board (F3.6, 03-design.md › board): slot groups and "Who's coming", kept current by
@@ -66,14 +63,10 @@ export function BoardScreen() {
     [claimSlotId, showToast],
   );
   const { query, board, connection, presence, announcement } = useBoardStream(eventId, onEvent);
-  const { setHeaderEnd } = useShell();
   const { mutate: release } = useReleaseSlot(eventId);
   const pendingSlotIds = usePendingSlotIds(eventId);
 
-  useEffect(() => {
-    setHeaderEnd(<ConnectionIndicator connection={connection} presence={presence} />);
-  }, [setHeaderEnd, connection, presence]);
-  useEffect(() => () => setHeaderEnd(null), [setHeaderEnd]);
+  useConnectionInHeader(connection, presence);
 
   // The claim dialog (F4) is `?claim=<slotId>` on this route.
   const openClaim = useCallback(
@@ -128,20 +121,7 @@ export function BoardScreen() {
       </>
     );
   } else if (query.isError) {
-    content = (
-      <Banner
-        tone="error"
-        icon="!"
-        role="alert"
-        action={
-          <Button variant="ghost" size="sm" onClick={() => void query.refetch()}>
-            Try again
-          </Button>
-        }
-      >
-        Something broke on our side. Please try again.
-      </Banner>
-    );
+    content = <LoadFailedBanner onRetry={() => void query.refetch()} />;
   }
 
   return (
@@ -209,10 +189,7 @@ function LiveBoard({
   const coverage = useMemo(() => computeCoverage(participants, slots), [participants, slots]);
   const hint = topHint(coverage);
   const summary = coverageSummary(coverage);
-  // The empty board has its own banner; hints start once something is on the board.
-  const showCoverageNudges = claimed > 0;
-  const hintText =
-    hint && showCoverageNudges ? `${DIETARY_LABELS[hint.need]} would help` : undefined;
+  const hintText = hint ? `${DIETARY_LABELS[hint.need]} would help` : undefined;
   const offline = connection === 'reconnecting';
   let openState: OpenSlotState = 'claimable';
   if (offline) openState = 'paused';
@@ -265,8 +242,9 @@ function LiveBoard({
         ) : null}
       </div>
 
-      {summary && showCoverageNudges ? (
-        // Mobile stands in for the sidebar card with one line (03-design.md › board › Layout).
+      {summary && claimed > 0 ? (
+        // Mobile stands in for the sidebar card with one line (03-design.md › board › Layout);
+        // the empty board shows its own banner instead (board/empty).
         <Link
           to="coverage"
           relative="path"

@@ -1,15 +1,15 @@
 import { computeCoverage } from '@dishpatch/shared';
-import { useEffect, useMemo } from 'react';
-import { Link, useParams } from 'react-router';
+import { useMemo } from 'react';
+import { useParams } from 'react-router';
 import { useBoardStream } from '../api/use-board-stream.ts';
-import { useShell } from '../components/AppShell.tsx';
-import { Banner } from '../components/Banner.tsx';
-import { Button } from '../components/Button.tsx';
-import { ConnectionIndicator } from '../components/ConnectionIndicator.tsx';
+import {
+  BackToBoard,
+  CARD as card,
+  LoadFailedBanner,
+  useConnectionInHeader,
+} from '../components/BoardPage.tsx';
 import { CoverageMeter } from '../components/CoverageMeter.tsx';
 import { NotFoundScreen } from './NotFoundScreen.tsx';
-
-const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
 
 /**
  * Dietary coverage (F5.4, 03-design.md › coverage): every need with guests, gap first, then thin,
@@ -18,16 +18,12 @@ const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
 export function CoverageScreen() {
   const { eventId = '' } = useParams();
   const { query, board, connection, presence } = useBoardStream(eventId);
-  const { setHeaderEnd } = useShell();
   const coverage = useMemo(
     () => (board ? computeCoverage(board.participants, board.slots) : undefined),
     [board],
   );
 
-  useEffect(() => {
-    setHeaderEnd(<ConnectionIndicator connection={connection} presence={presence} />);
-  }, [setHeaderEnd, connection, presence]);
-  useEffect(() => () => setHeaderEnd(null), [setHeaderEnd]);
+  useConnectionInHeader(connection, presence);
 
   if (connection === 'notfound') return <NotFoundScreen />;
 
@@ -59,18 +55,7 @@ export function CoverageScreen() {
   if (query.isError && !board) {
     content = (
       <div className="mt-s5">
-        <Banner
-          tone="error"
-          icon="!"
-          role="alert"
-          action={
-            <Button variant="ghost" size="sm" onClick={() => void query.refetch()}>
-              Try again
-            </Button>
-          }
-        >
-          Something broke on our side. Please try again.
-        </Banner>
+        <LoadFailedBanner onRetry={() => void query.refetch()} />
       </div>
     );
   } else if (coverage?.length === 0) {
@@ -92,18 +77,5 @@ export function CoverageScreen() {
       </p>
       {content}
     </section>
-  );
-}
-
-/** "← Back to board" from a board sub-screen (coverage, host settings). */
-export function BackToBoard() {
-  return (
-    <Link
-      to=".."
-      relative="path"
-      className="mb-s2 inline-flex min-h-10 items-center font-bold text-primary no-underline"
-    >
-      <span aria-hidden="true">←&nbsp;</span>Back to board
-    </Link>
   );
 }

@@ -164,11 +164,16 @@ export type SlotView = z.infer<typeof SlotView>;
 /** One row of `computeCoverage` (packages/shared/src/coverage.ts). */
 export const NeedCoverageView = z.object({
   need: DietarySchema,
+  /** Participants who listed this need. */
   guests: z.number().int().min(1),
+  /** Claimed dishes that suit it. */
   dishes: z.number().int().min(0),
+  /** How many of those dishes are mains. */
   mains: z.number().int().min(0),
   status: z.enum(['ok', 'thin', 'gap']),
 });
+
+export type NeedCoverageView = z.infer<typeof NeedCoverageView>;
 
 /**
  * `GET /api/events/:eventId` for a member of the board. `coverage` is what the server computed for

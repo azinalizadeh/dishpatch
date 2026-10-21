@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures.ts';
 
-// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound; M3: join; M4: board).
+// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound; M3: join; M4: board; M6: coverage, host).
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
 
 async function expectNoSeriousViolations(page: Page) {
@@ -104,6 +104,42 @@ test.describe('accessibility', () => {
         await expect(page.getByText(/Connection lost/)).toBeVisible();
         await expectNoSeriousViolations(page);
         await context.setOffline(false);
+      });
+
+      test('coverage, host settings and the delete dialog have no serious violations', async ({
+        page,
+        baseURL,
+      }) => {
+        const res = await page.request.post('/api/events', {
+          headers: { Origin: new URL(baseURL ?? 'http://localhost:3000').origin },
+          data: {
+            title: "Friendsgiving at Mina's",
+            startsAt: '2099-11-21T18:00:00.000Z',
+            hostName: 'Mina',
+            hostDietaryNeeds: ['vegan', 'nut_free'],
+            slots: [
+              { category: 'main', count: 3 },
+              { category: 'dessert', count: 2 },
+            ],
+          },
+        });
+        const { eventId } = (await res.json()) as { eventId: string };
+
+        await page.goto(`/events/${eventId}`);
+        await expect(page.getByText(/^Live/)).toBeVisible();
+        await expectNoSeriousViolations(page);
+
+        await page.goto(`/events/${eventId}/coverage`);
+        await expect(page.getByRole('list', { name: 'Dietary needs' })).toBeVisible();
+        await expectNoSeriousViolations(page);
+
+        await page.goto(`/events/${eventId}/host`);
+        await expect(page.getByRole('switch', { name: 'Lock the board' })).toBeVisible();
+        await expectNoSeriousViolations(page);
+
+        await page.getByRole('button', { name: 'Delete board' }).click();
+        await expect(page.getByLabel('Event name')).toBeFocused();
+        await expectNoSeriousViolations(page);
       });
     });
   }

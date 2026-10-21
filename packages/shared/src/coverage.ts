@@ -1,18 +1,10 @@
 import { DIETARY, type Dietary } from './dietary.ts';
-import type { SlotView } from './schemas.ts';
+import type { NeedCoverageView, SlotView } from './schemas.ts';
 
-export type CoverageStatus = 'ok' | 'thin' | 'gap';
+/** One need on the board: its guests, the claimed dishes that suit it, how many are mains. */
+export type NeedCoverage = NeedCoverageView;
 
-export interface NeedCoverage {
-  need: Dietary;
-  /** Participants who listed this need. */
-  guests: number;
-  /** Claimed dishes that suit it. */
-  dishes: number;
-  /** How many of those dishes are mains. */
-  mains: number;
-  status: CoverageStatus;
-}
+export type CoverageStatus = NeedCoverage['status'];
 
 export interface CoverageHint {
   need: Dietary;

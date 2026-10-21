@@ -184,3 +184,25 @@ describe('claim dialog preview', () => {
     expect(within(dialog).queryByText(/This covers/)).toBeNull();
   });
 });
+
+describe('coverage on an empty board', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('a gap puts its hint on every open slot even before anything is claimed (US-11)', async () => {
+    const board = snapshot();
+    serve({
+      ...board,
+      slots: board.slots.map((s) => ({ ...s, claimedBy: null, dishName: null, dishTags: [] })),
+    });
+    renderRoutes(`/events/${eventId}`);
+    await screen.findByText(/Nothing claimed yet/);
+    // Every need is a gap; Vegan and Halal (2 guests each) tie, and the first listed wins.
+    const hints = screen.getAllByText(/would help$/);
+    expect(hints).toHaveLength(12);
+    // The empty board's own banner replaces the mobile summary.
+    expect(screen.queryByRole('link', { name: /See coverage/ })).toBeNull();
+  });
+});

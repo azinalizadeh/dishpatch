@@ -1,4 +1,5 @@
 import {
+  type AddSlotResponse,
   type Category,
   IdParam,
   LIMITS,
@@ -68,7 +69,7 @@ export async function addSlot(
   bus: EventBus,
   actor: Actor,
   category: Category,
-): Promise<{ slot: SlotView; seq: number }> {
+): Promise<AddSlotResponse> {
   requireHost(actor);
   return recordAndPublish(db, bus, clock, async (tx, record) => {
     await lockEvent(tx, actor.eventId);
@@ -152,7 +153,8 @@ export async function rotateInvite(
 /**
  * API #13. A hard delete: the event row goes and the foreign keys cascade to participants,
  * sessions, slots and the event log. `event.deleted` is published after commit, so every open
- * stream sends it and closes.
+ * stream sends it and closes. The one mutation without `seq + 1` and a log row (AGENTS.md ›
+ * write path): both would be deleted by the same cascade, and `event.deleted` carries no seq.
  */
 export async function deleteEvent(
   db: Db,
