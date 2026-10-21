@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures.ts';
 
-// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound).
+// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound; M3: join).
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
 
 async function expectNoSeriousViolations(page: Page) {
@@ -41,6 +41,37 @@ test.describe('accessibility', () => {
 
         await page.goto('/no/such/page');
         await expect(page.getByRole('heading', { name: 'Nothing on this plate' })).toBeFocused();
+        await expectNoSeriousViolations(page);
+      });
+
+      test('join, join name-taken and join error have no serious violations', async ({
+        page,
+        baseURL,
+      }) => {
+        const res = await page.request.post('/api/events', {
+          headers: { Origin: new URL(baseURL ?? 'http://localhost:3000').origin },
+          data: {
+            title: "Friendsgiving at Mina's",
+            startsAt: '2099-11-21T18:00:00.000Z',
+            hostName: 'Mina',
+            hostDietaryNeeds: [],
+            slots: [{ category: 'main', count: 3 }],
+          },
+        });
+        const { inviteUrl } = (await res.json()) as { inviteUrl: string };
+
+        await page.goto(new URL(inviteUrl).pathname);
+        await page.getByRole('button', { name: 'Vegan' }).click();
+        await expectNoSeriousViolations(page);
+
+        await page.getByLabel('Your name').fill('Mina');
+        await page.getByRole('button', { name: 'Join the board' }).click();
+        await expect(page.getByLabel('Your name')).toBeFocused();
+        await expect(page.getByLabel('Your name')).toHaveAttribute('aria-invalid', 'true');
+        await expectNoSeriousViolations(page);
+
+        await page.goto(`/e/${'x'.repeat(43)}`);
+        await expect(page.getByRole('alert')).toBeFocused();
         await expectNoSeriousViolations(page);
       });
     });

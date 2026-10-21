@@ -201,7 +201,7 @@ function JoinForm({
       noValidate
       onSubmit={submit}
       aria-labelledby="join-h"
-      className="flex flex-col gap-s4 rounded-lg border border-border bg-surface p-s6 shadow-e1"
+      className="flex flex-col gap-s3 rounded-lg border border-border bg-surface p-s6 shadow-e1"
     >
       <div>
         <p className="text-xs/[1.5] font-bold uppercase tracking-[0.02em] text-muted">
@@ -300,9 +300,9 @@ function InviteInvalid() {
         ref={cardRef}
         role="alert"
         tabIndex={-1}
-        className="flex flex-col items-start gap-s4 rounded-lg border border-border bg-surface p-s6 shadow-e1 focus:outline-none"
+        className="flex flex-col items-start gap-s3 rounded-lg border border-border bg-surface p-s6 shadow-e1 focus:outline-none"
       >
-        <svg className="size-[132px]" viewBox="0 0 160 160" aria-hidden="true">
+        <svg className="size-40" viewBox="0 0 160 160" aria-hidden="true">
           <circle
             cx="80"
             cy="80"
