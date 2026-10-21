@@ -1,6 +1,8 @@
 import { DIETARY_LABELS, type SlotView } from '@dishpatch/shared';
+import { useEffect, useId, useRef, useState } from 'react';
 import { CATEGORY_LABELS } from '../categories.ts';
 import { Avatar } from './Avatar.tsx';
+import { Button } from './Button.tsx';
 import { Tag } from './Tag.tsx';
 
 /** Why an open slot can't be claimed right now: offline → "Paused", locked board → "Closed". */
@@ -13,7 +15,10 @@ interface SlotCardProps {
   mine: boolean;
   hostId: string | undefined;
   openState: OpenSlotState;
+  /** The viewer may release this claim (their own, or anyone's for the host) right now. */
+  canRelease: boolean;
   onClaim: (slot: SlotView) => void;
+  onRelease: (slot: SlotView) => void;
 }
 
 const openLabel: Record<OpenSlotState, string> = {
@@ -26,7 +31,16 @@ const openLabel: Record<OpenSlotState, string> = {
  * One slot (03-design.md › SlotCard). Claimed: a tilted "sticker" `<article>`; open: a dashed
  * `<button>` that opens the claim dialog, disabled with "Paused"/"Closed" when claims can't happen.
  */
-export function SlotCard({ slot, number, mine, hostId, openState, onClaim }: SlotCardProps) {
+export function SlotCard({
+  slot,
+  number,
+  mine,
+  hostId,
+  openState,
+  canRelease,
+  onClaim,
+  onRelease,
+}: SlotCardProps) {
   const { plural: label, singular, border } = CATEGORY_LABELS[slot.category];
 
   if (slot.claimedBy && slot.dishName) {
@@ -38,7 +52,9 @@ export function SlotCard({ slot, number, mine, hostId, openState, onClaim }: Slo
           mine ? 'outline-2 outline-offset-2 outline-primary' : ''
         }`}
       >
-        <span className="text-[17px] leading-[1.25] font-bold">{slot.dishName}</span>
+        <span className={`text-[17px] leading-[1.25] font-bold ${canRelease ? 'pr-s6' : ''}`}>
+          {slot.dishName}
+        </span>
         <span className="flex items-center gap-s2 text-sm text-muted">
           <Avatar name={by} host={slot.claimedBy.id === hostId} size="sm" />
           {by}
@@ -50,6 +66,16 @@ export function SlotCard({ slot, number, mine, hostId, openState, onClaim }: Slo
               <Tag key={t}>{DIETARY_LABELS[t]}</Tag>
             ))}
           </span>
+        ) : null}
+        {canRelease ? (
+          <ReleaseControl
+            // A new claim in this slot starts with the popover closed.
+            key={`${slot.claimedBy.id}:${slot.dishName}`}
+            question={mine ? `Release '${slot.dishName}'?` : `Remove ${by}'s claim?`}
+            buttonLabel={mine ? `Release your ${label} slot` : `Remove ${by}'s claim`}
+            confirmLabel={mine ? 'Release' : 'Remove'}
+            onConfirm={() => onRelease(slot)}
+          />
         ) : null}
       </article>
     );
@@ -66,5 +92,77 @@ export function SlotCard({ slot, number, mine, hostId, openState, onClaim }: Slo
       <span className="font-extrabold text-primary">{openLabel[openState]}</span>
       <span className="text-sm">Open {singular}</span>
     </button>
+  );
+}
+
+interface ReleaseControlProps {
+  question: string;
+  buttonLabel: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+}
+
+/** The ✕ on a claimed card and its confirm popover (03-design.md › board › Interactions). */
+function ReleaseControl({ question, buttonLabel, confirmLabel, onConfirm }: ReleaseControlProps) {
+  const [open, setOpen] = useState(false);
+  const questionId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const confirm = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (open) confirm.current?.focus();
+  }, [open]);
+
+  const close = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
+
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        aria-label={buttonLabel}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="absolute top-[6px] right-[6px] grid size-10 cursor-pointer place-items-center rounded-md text-lg font-bold text-primary after:absolute after:-inset-1 after:content-[''] hover:bg-surface-2"
+      >
+        <span aria-hidden="true">✕</span>
+      </button>
+      {open ? (
+        <div
+          role="dialog"
+          aria-labelledby={questionId}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.stopPropagation();
+              close();
+            }
+          }}
+          className="absolute top-12 right-0 z-10 flex w-max max-w-[260px] flex-col gap-s3 rounded-md border border-border bg-surface p-s4 shadow-e3"
+        >
+          <p id={questionId} className="text-sm font-bold">
+            {question}
+          </p>
+          <div className="flex justify-end gap-s2">
+            <Button variant="secondary" size="sm" onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              ref={confirm}
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                onConfirm();
+              }}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

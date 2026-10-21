@@ -1,10 +1,11 @@
-import type { InputHTMLAttributes, ReactNode } from 'react';
+import type { InputHTMLAttributes, ReactNode, Ref } from 'react';
 
 interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
   id: string;
   label: ReactNode;
   error?: string | undefined;
   hint?: ReactNode;
+  ref?: Ref<HTMLInputElement>;
 }
 
 /** Labelled input; the error message is linked with aria-describedby (03-design.md › TextField). */

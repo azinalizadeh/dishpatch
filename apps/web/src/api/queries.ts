@@ -1,6 +1,6 @@
-import { Snapshot } from '@dishpatch/shared';
-import { useQuery } from '@tanstack/react-query';
-import { ApiRequestError, getJson } from './client.ts';
+import { type ClaimInput, ClaimResponse, type SlotView, Snapshot } from '@dishpatch/shared';
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiRequestError, deleteJson, getJson, postJson } from './client.ts';
 
 export const boardKey = (eventId: string) => ['board', eventId] as const;
 
@@ -19,4 +19,102 @@ export function useBoardSnapshot(eventId: string) {
     // A 404 means "not a member" (or no such board): retrying won't change that.
     retry: (failures, err) => !isNotFound(err) && failures < 2,
   });
+}
+
+/** A claim or release that hasn't answered in 10 s is rolled back (05-features.md › F4 edge cases). */
+export const MUTATION_TIMEOUT_MS = 10_000;
+
+const claimPath = (eventId: string, slotId: string) =>
+  `/api/events/${encodeURIComponent(eventId)}/slots/${encodeURIComponent(slotId)}/claim`;
+
+/** Replaces one slot in the cached board without touching `seq`, so stream events keep applying. */
+function replaceSlot(
+  queryClient: QueryClient,
+  eventId: string,
+  slotId: string,
+  update: (current: SlotView) => SlotView,
+) {
+  queryClient.setQueryData<Snapshot>(boardKey(eventId), (board) =>
+    board ? { ...board, slots: board.slots.map((s) => (s.id === slotId ? update(s) : s)) } : board,
+  );
+}
+
+const sameSlot = (a: SlotView, b: SlotView) => JSON.stringify(a) === JSON.stringify(b);
+
+interface Optimistic {
+  previous: SlotView;
+  optimistic: SlotView;
+}
+
+/**
+ * Shared optimistic flow for claim and release. The slot changes in the cache at once; on success
+ * it takes the server's version, on failure it goes back. Both only apply while the cached slot
+ * still equals our optimistic version: if the stream has replaced it meanwhile (someone else won),
+ * the stream's version is newer and stays. (Compared by value: the query cache's structural
+ * sharing doesn't keep object identity.)
+ */
+function useOptimisticSlotMutation<V extends { slot: SlotView }>(
+  eventId: string,
+  request: (vars: V, signal: AbortSignal) => Promise<ClaimResponse>,
+  optimisticSlot: (vars: V) => SlotView,
+) {
+  const queryClient = useQueryClient();
+  return useMutation<ClaimResponse, Error, V, Optimistic>({
+    mutationFn: (vars) => request(vars, AbortSignal.timeout(MUTATION_TIMEOUT_MS)),
+    onMutate: (vars) => {
+      const previous =
+        queryClient
+          .getQueryData<Snapshot>(boardKey(eventId))
+          ?.slots.find((s) => s.id === vars.slot.id) ?? vars.slot;
+      const optimistic = optimisticSlot(vars);
+      replaceSlot(queryClient, eventId, vars.slot.id, () => optimistic);
+      return { previous, optimistic };
+    },
+    onSuccess: (res, vars, context) => {
+      replaceSlot(queryClient, eventId, vars.slot.id, (s) =>
+        sameSlot(s, context.optimistic) ? res.slot : s,
+      );
+    },
+    onError: (err, vars, context) => {
+      if (context) {
+        replaceSlot(queryClient, eventId, vars.slot.id, (s) =>
+          sameSlot(s, context.optimistic) ? context.previous : s,
+        );
+      }
+      // The board changed under us (locked, or we're no longer a member): reload it.
+      if (err instanceof ApiRequestError && ['BOARD_LOCKED', 'NOT_FOUND'].includes(err.code)) {
+        void queryClient.invalidateQueries({ queryKey: boardKey(eventId) });
+      }
+    },
+  });
+}
+
+export interface ClaimVars {
+  slot: SlotView;
+  me: { id: string; displayName: string };
+  input: ClaimInput;
+}
+
+/** API #7 with an optimistic "mine" card (01-product.md › US-07). */
+export function useClaimSlot(eventId: string) {
+  return useOptimisticSlotMutation<ClaimVars>(
+    eventId,
+    ({ slot, input }, signal) =>
+      postJson(claimPath(eventId, slot.id), ClaimResponse, input, signal),
+    ({ slot, me, input }) => ({
+      ...slot,
+      claimedBy: me,
+      dishName: input.dishName,
+      dishTags: input.dishTags,
+    }),
+  );
+}
+
+/** API #8 with an optimistic open slot (01-product.md › US-09). */
+export function useReleaseSlot(eventId: string) {
+  return useOptimisticSlotMutation<{ slot: SlotView }>(
+    eventId,
+    ({ slot }, signal) => deleteJson(claimPath(eventId, slot.id), ClaimResponse, signal),
+    ({ slot }) => ({ ...slot, claimedBy: null, dishName: null, dishTags: [] }),
+  );
 }

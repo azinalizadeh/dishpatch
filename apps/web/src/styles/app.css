@@ -24,6 +24,8 @@
   --color-ok-bg: var(--ok-bg);
   --color-ok-ink: var(--ok-ink);
   --color-focus: var(--focus);
+  /* The dialog scrim from design/mockup.html › .scrim (same in light and dark). */
+  --color-scrim: rgb(10 16 14 / 0.55);
   --color-cat-main: var(--cat-main);
   --color-on-cat-main: var(--on-cat-main);
   --color-cat-side: var(--cat-side);

@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import { Link, type LinkProps } from 'react-router';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -29,6 +29,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Shows a spinner and this label, sets aria-busy and blocks clicks. */
   loadingLabel?: string | undefined;
   loading?: boolean;
+  ref?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }
 
