@@ -5,20 +5,7 @@ import { Banner } from '../components/Banner.tsx';
 import { ButtonLink } from '../components/Button.tsx';
 import { LinkBox } from '../components/LinkBox.tsx';
 import { Toast } from '../components/Toast.tsx';
-
-function formatWhen(iso: string): string {
-  const date = new Date(iso);
-  const day = new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
-  const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(
-    date,
-  );
-  return `${day} · ${time}`;
-}
+import { formatWhen } from '../format.ts';
 
 export function ShareScreen() {
   const { eventId } = useParams();

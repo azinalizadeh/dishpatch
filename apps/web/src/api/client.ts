@@ -26,24 +26,30 @@ export class NetworkError extends Error {
   override name = 'NetworkError';
 }
 
-/** POSTs JSON to the same-origin API (cookies included) and parses the answer with `schema`. */
-export async function postJson<T>(
-  path: string,
-  schema: { parse: (data: unknown) => T },
-  body?: unknown,
-): Promise<T> {
+type Schema<T> = { parse: (data: unknown) => T };
+
+async function requestJson<T>(path: string, schema: Schema<T>, init: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
-      body: body === undefined ? null : JSON.stringify(body),
-    });
+    res = await fetch(path, { credentials: 'same-origin', ...init });
   } catch {
     throw new NetworkError('Network request failed');
   }
   const data: unknown = await res.json().catch(() => undefined);
   if (!res.ok) throw new ApiRequestError(res.status, data);
   return schema.parse(data);
+}
+
+/** GETs JSON from the same-origin API (cookies included) and parses the answer with `schema`. */
+export function getJson<T>(path: string, schema: Schema<T>): Promise<T> {
+  return requestJson(path, schema, { method: 'GET' });
+}
+
+/** POSTs JSON to the same-origin API (cookies included) and parses the answer with `schema`. */
+export function postJson<T>(path: string, schema: Schema<T>, body?: unknown): Promise<T> {
+  return requestJson(path, schema, {
+    method: 'POST',
+    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+    body: body === undefined ? null : JSON.stringify(body),
+  });
 }
