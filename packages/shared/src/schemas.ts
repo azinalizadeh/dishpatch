@@ -9,12 +9,15 @@ export const CategorySchema = z.enum(CATEGORIES);
 const NO_CONTROL = /^[^\p{Cc}]*$/u;
 const NO_CONTROL_MESSAGE = 'Remove the special characters.';
 
+/** Length in code points, as Postgres `varchar(n)` counts it (an emoji is 1, not 2). */
+const codePoints = (value: string) => [...value].length;
+
 function text(max: number, messages: { empty: string; tooLong: string }) {
   return z
     .string()
     .trim()
     .min(1, messages.empty)
-    .max(max, messages.tooLong)
+    .refine((value) => codePoints(value) <= max, messages.tooLong)
     .regex(NO_CONTROL, NO_CONTROL_MESSAGE);
 }
 
@@ -96,6 +99,32 @@ export type CreateEventResponse = z.infer<typeof CreateEventResponse>;
 export const HostLinkResponse = z.object({ eventId: z.uuid() });
 
 export type HostLinkResponse = z.infer<typeof HostLinkResponse>;
+
+export const JoinInput = z.object({
+  displayName: text(LIMITS.nameMax, {
+    empty: 'Add a name so people know who you are.',
+    tooLong: `Keep your name under ${LIMITS.nameMax} characters.`,
+  }),
+  // Needs are a set: repeats are dropped rather than rejected.
+  dietaryNeeds: z.array(DietarySchema).transform((needs) => [...new Set(needs)]),
+});
+
+export type JoinInput = z.output<typeof JoinInput>;
+
+/** What anyone holding the invite link may see: no participant names or needs (07-security.md › I1/I4). */
+export const InvitePreview = z.object({
+  title: z.string(),
+  startsAt: z.iso.datetime({ offset: true }),
+  location: z.string().nullable(),
+  hostName: z.string(),
+  participantCount: z.number().int().min(0),
+});
+
+export type InvitePreview = z.infer<typeof InvitePreview>;
+
+export const JoinResponse = z.object({ eventId: z.uuid(), participantId: z.uuid() });
+
+export type JoinResponse = z.infer<typeof JoinResponse>;
 
 /** Capability tokens: 32 random bytes as base64url (07-security.md › Authentication). */
 export const TokenParam = z.string().regex(/^[A-Za-z0-9_-]{43}$/);

@@ -9,6 +9,9 @@ export {
   CreateEventResponse,
   DietarySchema,
   HostLinkResponse,
+  InvitePreview,
+  JoinInput,
+  JoinResponse,
   SlotCountInput,
   TokenParam,
 } from './schemas.ts';
