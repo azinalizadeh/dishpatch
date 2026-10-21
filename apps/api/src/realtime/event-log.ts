@@ -79,9 +79,12 @@ export function createEventLogRepo(db: Db): EventLogRepo {
             .where(and(eq(eventLog.eventId, eventId), gt(eventLog.seq, afterSeq)))
             .orderBy(asc(eventLog.seq));
           if (rows[0]?.seq !== afterSeq + 1) return 'too_old';
-          return rows.map(({ seq, type, payload }) =>
-            SequencedBoardEvent.parse({ ...(payload as object), type, seq }),
-          );
+          // Rows the stream doesn't carry (e.g. `invite.rotated`) are skipped, not fatal: one odd
+          // row must never block replay for the whole board.
+          return rows.flatMap(({ seq, type, payload }) => {
+            const parsed = SequencedBoardEvent.safeParse({ ...(payload as object), type, seq });
+            return parsed.success ? [parsed.data] : [];
+          });
         },
         { isolationLevel: 'repeatable read', accessMode: 'read only' },
       );

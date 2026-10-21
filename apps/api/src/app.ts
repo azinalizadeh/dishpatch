@@ -13,7 +13,7 @@ import { createRateLimits } from './middleware/rate-limits.ts';
 import { noStore, requireJsonBody, securityHeaders } from './middleware/security.ts';
 import type { EventBus } from './realtime/event-bus.ts';
 import { createEventLogRepo } from './realtime/event-log.ts';
-import { createSseHub, type SseHubOptions } from './realtime/sse-hub.ts';
+import { createSseHub, type SseHub, type SseHubOptions } from './realtime/sse-hub.ts';
 import { eventsRouter } from './routes/events.ts';
 import { healthRouter } from './routes/health.ts';
 import { hostLinksRouter } from './routes/host-links.ts';
@@ -30,15 +30,23 @@ export interface AppDeps {
   /** Built SPA (apps/web/dist). Served with an index.html fallback for non-/api GETs when present. */
   staticDir?: string;
   /** Overrides for the SSE hub's timings and limits (tests). */
-  sse?: Omit<SseHubOptions, 'bus' | 'log'>;
+  sse?: Omit<SseHubOptions, 'bus' | 'log' | 'onError'>;
+  /** Called with the SSE hub once built, so the server can end streams on shutdown. */
+  onHub?: (hub: SseHub) => void;
 }
 
 /** Builds the Express app without listening, so tests can drive it with supertest. */
 export function buildApp(deps: AppDeps): Express {
   const { env, db, clock, bus } = deps;
   const limits = createRateLimits();
-  const hub = createSseHub({ bus, log: createEventLogRepo(db), ...deps.sse });
   const logger = deps.logger ?? createLogger(env.LOG_LEVEL);
+  const hub = createSseHub({
+    bus,
+    log: createEventLogRepo(db),
+    onError: (err) => logger.error({ err }, 'sse delivery failed'),
+    ...deps.sse,
+  });
+  deps.onHub?.(hub);
   const app = express();
 
   app.disable('x-powered-by');

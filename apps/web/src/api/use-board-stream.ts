@@ -17,6 +17,8 @@ export const RECONNECTING_AFTER_MS = 2_000;
 export const ANNOUNCE_EVERY_MS = 2_000;
 /** Matches the server's `retry: 3000`, for streams the browser won't retry by itself. */
 const REOPEN_AFTER_MS = 3_000;
+/** A stream the server keeps refusing (e.g. too many tabs) backs off up to this. */
+const REOPEN_MAX_MS = 30_000;
 
 const STREAM_EVENTS: BoardEventType[] = [
   'slot.claimed',
@@ -94,6 +96,8 @@ export function useBoardStream(eventId: string) {
   const [announcement, announce] = useThrottledAnnouncer();
   // Bumped to open a fresh stream (after a resync or a stream the browser gave up on).
   const [epoch, setEpoch] = useState(0);
+  // Refused streams in a row, for the reopen backoff; reset when a stream opens.
+  const refusals = useRef(0);
   const ready = query.data !== undefined;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: bumping `epoch` is how a fresh stream is opened.
@@ -116,6 +120,7 @@ export function useBoardStream(eventId: string) {
     };
 
     source.onopen = () => {
+      refusals.current = 0;
       clearTimeout(errorTimer);
       errorTimer = undefined;
       setConnection('live');
@@ -126,7 +131,7 @@ export function useBoardStream(eventId: string) {
       if (source.readyState === EventSource.CLOSED) {
         // The server refused the stream (404, 429): recheck membership, then try again.
         void queryClient.invalidateQueries({ queryKey: key });
-        reopenAfter(REOPEN_AFTER_MS);
+        reopenAfter(Math.min(REOPEN_MAX_MS, REOPEN_AFTER_MS * 2 ** refusals.current++));
       }
     };
 
@@ -177,8 +182,9 @@ export function useBoardStream(eventId: string) {
     // A dropped network can leave a dead socket that only times out much later, so trust the
     // browser's own offline/online signal: pause now, and reopen from our seq when back.
     const onOffline = () => {
-      source.close();
       errorTimer ??= setTimeout(() => setConnection('reconnecting'), RECONNECTING_AFTER_MS);
+      // Reopen soon even if 'online' never fires (some VPN or captive-portal flaps).
+      reopenAfter(REOPEN_AFTER_MS);
     };
     const onOnline = () => {
       if (source.readyState === EventSource.CLOSED) setEpoch((n) => n + 1);

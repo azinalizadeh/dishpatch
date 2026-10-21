@@ -46,6 +46,22 @@ describe('event log', () => {
     expect(await repo.since(eventId, 9)).toBe('too_old');
   });
 
+  it('since skips logged rows the stream does not carry instead of failing the replay', async () => {
+    const { eventId } = await createBoard(db);
+    await logChanges(eventId, 1);
+    // A host-only change (F6) that is logged but never streamed.
+    await db.orm.update(events).set({ seq: 2 }).where(eq(events.id, eventId));
+    await db.orm
+      .insert(eventLog)
+      .values({ eventId, seq: 2, type: 'invite.rotated', payload: {}, createdAt: clock.now() });
+    await logChanges(eventId, 1);
+
+    expect(await repo.since(eventId, 0)).toEqual([
+      { type: 'event.updated', seq: 1, locked: true },
+      { type: 'event.updated', seq: 3, locked: true },
+    ]);
+  });
+
   it('nothing is published when the transaction rolls back', async () => {
     const { eventId } = await createBoard(db);
     const bus = createInProcessEventBus();

@@ -11,6 +11,8 @@ export interface SseHubOptions {
   presenceThrottleMs?: number;
   maxPerSession?: number;
   maxPerIp?: number;
+  /** Hears about a replay or gap-fill that failed (the client is told to resync). */
+  onError?: (err: unknown) => void;
 }
 
 export interface StreamRequest {
@@ -27,6 +29,8 @@ export interface SseHub {
   open(req: StreamRequest, res: Response): Promise<void>;
   /** Open streams for a board (the presence count). */
   count(eventId: string): number;
+  /** Ends every stream (shutdown); EventSource reconnects to the next instance. */
+  closeAll(): void;
 }
 
 interface Connection {
@@ -55,6 +59,7 @@ export function createSseHub({
   presenceThrottleMs = 5_000,
   maxPerSession = 5,
   maxPerIp = 20,
+  onError = () => {},
 }: SseHubOptions): SseHub {
   const connections = new Set<Connection>();
   const presence = new Map<
@@ -137,7 +142,13 @@ export function createSseHub({
     // arrive during the replay wait their turn and are dropped by seq if the replay sent them.
     let queue = Promise.resolve();
     const deliver = (work: () => void | Promise<void>) => {
-      queue = queue.then(work).catch(() => conn.close());
+      queue = queue.then(work).catch((err: unknown) => {
+        // Don't fail silently into a reconnect loop: log it, and have the client start over
+        // from a fresh snapshot.
+        onError(err);
+        write({ type: 'resync' });
+        conn.close();
+      });
       return queue;
     };
 
@@ -180,5 +191,11 @@ export function createSseHub({
     if (req.afterSeq !== undefined) await deliver(catchUp);
   }
 
-  return { open, count: (eventId) => ofEvent(eventId).length };
+  return {
+    open,
+    count: (eventId) => ofEvent(eventId).length,
+    closeAll: () => {
+      for (const c of [...connections]) c.close();
+    },
+  };
 }

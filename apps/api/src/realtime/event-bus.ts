@@ -6,12 +6,20 @@ export interface EventBus {
   subscribe(eventId: string, fn: (msg: BoardEvent) => void): () => void;
 }
 
-export function createInProcessEventBus(): EventBus {
+/** `onError` hears about a subscriber that threw; publishing carries on to the others. */
+export function createInProcessEventBus(onError: (err: unknown) => void = () => {}): EventBus {
   const subscribers = new Map<string, Set<(msg: BoardEvent) => void>>();
   return {
     publish(eventId, msg) {
       // Copy first: a subscriber may unsubscribe while handling (a stream closing on event.deleted).
-      for (const fn of [...(subscribers.get(eventId) ?? [])]) fn(msg);
+      // Publishing runs after COMMIT, so a failing subscriber must not fail the write.
+      for (const fn of [...(subscribers.get(eventId) ?? [])]) {
+        try {
+          fn(msg);
+        } catch (err) {
+          onError(err);
+        }
+      }
     },
     subscribe(eventId, fn) {
       const set = subscribers.get(eventId) ?? new Set();
