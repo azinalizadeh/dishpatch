@@ -13,6 +13,8 @@ export {
   type ApiError,
   ApiErrorSchema,
   CategorySchema,
+  ClaimInput,
+  ClaimResponse,
   CreateEventInput,
   CreateEventResponse,
   DietarySchema,

@@ -7,7 +7,13 @@ const Seq = z.number().int().min(1);
 /** Changes that are logged in `event_log` and carry the board's `seq` (04-architecture.md › API #6). */
 export const SequencedBoardEvent = z.discriminatedUnion('type', [
   z.object({ type: z.literal('slot.claimed'), seq: Seq, slot: SlotView }),
-  z.object({ type: z.literal('slot.released'), seq: Seq, slotId: z.uuid() }),
+  z.object({
+    type: z.literal('slot.released'),
+    seq: Seq,
+    slotId: z.uuid(),
+    // Who released it: the claimant, or the host removing someone's claim.
+    actorRole: z.enum(['host', 'guest']),
+  }),
   z.object({ type: z.literal('slot.added'), seq: Seq, slot: SlotView }),
   z.object({ type: z.literal('slot.removed'), seq: Seq, slotId: z.uuid() }),
   z.object({ type: z.literal('participant.joined'), seq: Seq, participant: ParticipantView }),
