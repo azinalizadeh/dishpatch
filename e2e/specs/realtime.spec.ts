@@ -108,3 +108,35 @@ test('presence count goes from 1 to 2 when a second context opens the board', as
   await expect(guest.page.getByText('Live · 2 here')).toBeVisible();
   await guest.context.close();
 });
+
+test('claiming a vegan main in context A flips Vegan from Thin to Covered in context B', async ({
+  browser,
+  page,
+  baseURL,
+}) => {
+  // B: the host, watching the coverage card in the sidebar.
+  const board = await createBoard(page.request, baseURL);
+  const a = await newPerson(browser);
+  await joinBoard(a.page.request, baseURL, board.invitePath, 'Priya', ['vegan']);
+  const slots = await boardSlots(page.request, board.eventId);
+  const main = slots.find((s) => s.category === 'main');
+  const dessert = slots.find((s) => s.category === 'dessert');
+  await claimSlot(a.page.request, baseURL, board.eventId, dessert?.id as string, 'Sorbet', [
+    'vegan',
+  ]);
+  await openLiveBoard(page, board.eventId);
+
+  const coverage = page.getByRole('region', { name: 'Dietary coverage' });
+  const vegan = coverage.getByRole('listitem').filter({ hasText: /^Vegan/ });
+  await expect(vegan).toContainText('No vegan main yet');
+  await expect(page.getByText('Vegan would help').first()).toBeVisible();
+
+  // A: claims a vegan main.
+  await claimSlot(a.page.request, baseURL, board.eventId, main?.id as string, 'Mushroom pie', [
+    'vegan',
+  ]);
+
+  await expect(vegan).toContainText('Covered', { timeout: 1_000 });
+  await expect(page.getByText('Vegan would help')).toHaveCount(0);
+  await a.context.close();
+});

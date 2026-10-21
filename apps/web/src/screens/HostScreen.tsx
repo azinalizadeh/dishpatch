@@ -25,7 +25,11 @@ import { Toast, type ToastAction, type ToastRole } from '../components/Toast.tsx
 import { BackToBoard } from './CoverageScreen.tsx';
 import { NotFoundScreen } from './NotFoundScreen.tsx';
 
-const card = 'rounded-lg border border-border bg-surface p-s5 shadow-e1';
+const panel = 'rounded-lg border bg-surface p-s5 shadow-e1';
+const card = `${panel} border-border`;
+/** A setting row: text, then its control — stacked on mobile, side by side from tablet up. */
+const setting =
+  'flex flex-col items-start gap-s4 tablet:flex-row tablet:items-center tablet:justify-between';
 const SAVE_FAILED = "Couldn't save — try again";
 
 /** Toast copy for a failed host action: the API's own message, or "couldn't save". */
@@ -140,7 +144,7 @@ function HostSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
 
   return (
     <div className="flex flex-col gap-s4">
-      <div className={`${card} flex items-center justify-between gap-s4`}>
+      <div className={`${card} ${setting}`}>
         <div>
           <h2 className="text-lg leading-[1.3]">Lock the board</h2>
           <p className="text-sm text-muted">
@@ -156,7 +160,7 @@ function HostSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
       </div>
 
       <div className={`${card} flex flex-col gap-s4`}>
-        <div className="flex flex-wrap items-center justify-between gap-s4">
+        <div className={setting}>
           <div>
             <h2 className="text-lg leading-[1.3]">Make a new invite link</h2>
             <p className="text-sm text-muted">
@@ -185,7 +189,7 @@ function HostSettings({ board, onToast }: { board: Snapshot; onToast: OnToast })
 
       <SlotSettings board={board} onToast={onToast} />
 
-      <div className={`${card} flex flex-wrap items-center justify-between gap-s4 border-error`}>
+      <div className={`${panel} ${setting} border-error`}>
         <div>
           <h2 className="text-lg leading-[1.3]">Delete this board</h2>
           <p className="text-sm text-muted">
