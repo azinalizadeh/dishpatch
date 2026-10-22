@@ -10,7 +10,9 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      include: ['packages/shared/src/**', 'apps/api/src/**', 'apps/web/src/**'],
+      // Matched against each project's own root (e.g. `src/coverage.ts` in packages/shared), so a
+      // repo-relative pattern such as 'packages/shared/src/**' matches nothing.
+      include: ['**/src/**'],
       reporter: ['text-summary', 'html'],
       // 06-test-plan.md › CI quality gates (unit job)
       thresholds: {

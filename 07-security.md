@@ -124,7 +124,7 @@ Cache-Control: no-store   (all /api responses)
 ```
 Tailwind output is a static CSS file, so `style-src 'self'` works without `unsafe-inline`.
 
-**Rate limiting** — express-rate-limit, in-memory store, keyed by IP (or session id where noted) with the limits in 04-architecture.md. Session-keyed limits use a custom `keyGenerator` that falls back to `ipKeyGenerator(req.ip)` (express-rate-limit 8 rejects raw IPv6 keys). `TRUST_PROXY=false` by default so `X-Forwarded-For` can't be spoofed locally.
+**Rate limiting** — express-rate-limit, in-memory store, keyed by IP (or session id where noted) with the limits in 04-architecture.md. Session-keyed limits use a custom `keyGenerator` that falls back to `ipKeyGenerator(req.ip)` (express-rate-limit 8 rejects raw IPv6 keys). `TRUST_PROXY=false` by default so `X-Forwarded-For` can't be spoofed locally; behind a reverse proxy it is the hop count (`1`), so only the address the proxy saw counts (`events.int.test.ts › behind one trusted proxy, a spoofed X-Forwarded-For does not reset the create limit`). `true` (trust every hop) is for the E2E stack only.
 
 **SQL injection prevention** — Drizzle query builder / postgres.js tagged templates only; `sql.raw(` and `.unsafe(` are banned by the `lint:sql` script (`! grep -rnE "sql\.raw\(|\.unsafe\(" apps/api/src`) that runs in CI, plus code review.
 
@@ -156,3 +156,12 @@ Using unguessable links instead of accounts keeps joining to one step (a core go
 | Request logs | stdout (container) | No IPs, tokens, bodies or names; route pattern, status, latency, request id |
 
 Dietary needs can reveal religion or health, which GDPR treats as special-category data. They are optional, explained at the point of entry, used only for the coverage meter, never exported, and deleted with the board. No analytics, no third-party scripts or fonts.
+
+## Security pass (M7, 2026-10-22)
+
+- **STRIDE table:** every row's named test exists and is green (`pnpm test`, `pnpm test:int`, `pnpm test:e2e`). E3 is covered by the CI jobs `deps-audit` and `image-scan`.
+- **Finding fixed:** `TRUST_PROXY` was a boolean, and `true` makes Express trust every `X-Forwarded-For` entry, so behind a real proxy a client could choose its own IP and reset every per-IP limit (S1, D1, D2). It now also takes a hop count; the README's "Deploying" section says to use `1` behind one proxy. A new test proves a spoofed header no longer resets the create limit (and fails with `true`).
+- **CI gaps fixed:** the coverage gate measured 0 of 0 lines (the `include` patterns never matched, so it always passed) and the Firefox E2E project was never run. Coverage now runs over unit + integration tests in the `integration` job (shared 100% lines, domain ≥ 80%), and the `e2e` job runs `firefox-desktop` too.
+- **`pnpm audit`:** 0 high/critical. Accepted: 1 moderate, `esbuild ≤ 0.24.2` (GHSA-67mh-4wv8-2f99, a dev server answering other sites) reached only through `drizzle-kit › @esbuild-kit/*`. drizzle-kit is a dev-only migration generator, its esbuild dev server is never started, and nothing from it ships in the image. Revisit when drizzle-kit drops `@esbuild-kit`.
+- **Trivy (0.69.3) on the built image:** 0 high/critical; 23 medium in Debian 13 base packages (`libc6`, `libgcc-s1`, `libstdc++6`, `gcc-14-base`, `libgomp1`, `zlib1g`) with no fixed version yet. Accepted until the distroless base image picks up fixes (Dependabot watches the digest). The app's own Node packages have none.
+- **Accessibility:** axe (WCAG 2.2 AA tags) now also scans the claim dialog, its conflict error, a claimed board and a locked board, in light and dark; keyboard-only create, join and claim are tested. Live announcements are throttled to one per 2 s (`use-board-stream.test.tsx`); a manual screen-reader run was not part of this pass.

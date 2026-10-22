@@ -86,9 +86,9 @@ All actions pinned by full commit SHA. Node 24.22.0 via `.nvmrc`. Jobs:
 | Job | Steps | Gate |
 |---|---|---|
 | `lint` | `pnpm install --frozen-lockfile` → `pnpm lint` → `pnpm lint:sql` → `pnpm typecheck` | zero errors, zero warnings (`biome ci --error-on-warnings`) |
-| `unit` | `pnpm test:cov` | all green; coverage ≥ 80% lines/branches on `packages/shared` and `apps/api/src/domain`; 100% branches on `coverage.ts` |
-| `integration` | `pnpm test:int` (Testcontainers uses the runner's Docker) | all green incl. race tests |
-| `e2e` | `docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait` → `pnpm test:e2e --project=chromium-desktop --project=chromium-mobile` | all green; Playwright report uploaded as artifact on failure |
+| `unit` | `pnpm test` | all green |
+| `integration` | `pnpm test:cov` (every Vitest project incl. `api-int`; Testcontainers uses the runner's Docker) | all green incl. race tests; coverage ≥ 80% lines/branches on `packages/shared` and `apps/api/src/domain`; 100% branches on `coverage.ts`. Domain services are exercised by the integration tests, so coverage is measured across unit + integration together |
+| `e2e` | `docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait` → `pnpm test:e2e --project=chromium-desktop --project=chromium-mobile --project=firefox-desktop` | all green; Playwright report uploaded as artifact on failure |
 | `deps-audit` | `pnpm audit --audit-level high` | no high/critical advisories (temporary ignores need an issue link in `pnpm-workspace.yaml` `auditConfig`) |
 | `image-scan` | build image → Trivy `severity: HIGH,CRITICAL`, `ignore-unfixed: true`, `exit-code: 1` | no fixable high/critical CVEs |
 | `codeql` | CodeQL javascript-typescript (push to main + weekly) | no new high alerts |
@@ -109,7 +109,7 @@ pnpm lint                       # biome check .
 pnpm lint:sql                   # bans sql.raw( / .unsafe( in apps/api/src
 pnpm typecheck                  # tsc --noEmit in every package
 pnpm test                       # unit + component (Vitest projects: shared, api-unit, web)
-pnpm test:cov                   # same, with v8 coverage + thresholds
+pnpm test:cov                   # every project incl. api-int (needs Docker), with v8 coverage + thresholds
 
 # integration (needs Docker running; Testcontainers starts Postgres 18.6)
 pnpm test:int                   # vitest run --project api-int
