@@ -10,7 +10,7 @@ import { post, sessionCookie } from './helpers/requests.ts';
 describe('GET /api/events/:eventId', () => {
   const db = useTestDb();
 
-  it('returns slots, participants, me and seq for a member', async () => {
+  it('returns slots, participants, coverage, me and seq for a member', async () => {
     const board = await createBoard(db);
     const { app } = intApp(db, { clock });
     const joined = await post(app, `/api/invites/${board.inviteToken}/join`, {
@@ -33,6 +33,7 @@ describe('GET /api/events/:eventId', () => {
     ]);
     expect(snapshot.me).toEqual({ participantId: joined.body.participantId, role: 'guest' });
     expect(snapshot.seq).toBe(1);
+    expect(snapshot.coverage.map((row) => row.need)).toContain('vegan');
   });
 
   it('snapshot coverage equals computeCoverage of the stored data', async () => {

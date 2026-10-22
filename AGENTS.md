@@ -23,7 +23,7 @@ pnpm build                               # all packages
 pnpm lint && pnpm lint:sql && pnpm typecheck
 pnpm format                              # biome format --write .
 pnpm test                                # unit + component
-pnpm test:cov                            # with coverage thresholds
+pnpm test:cov                            # all projects incl. integration (needs Docker), with coverage thresholds
 pnpm test:int                            # API/integration (needs Docker)
 pnpm --filter @dishpatch/api test:race   # race tests
 docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait && pnpm test:e2e   # CI override: per-test client IPs for rate limits

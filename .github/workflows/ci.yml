@@ -43,7 +43,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:cov
+      - run: pnpm test
 
   integration:
     runs-on: ubuntu-24.04
@@ -55,7 +55,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:int # Testcontainers uses the runner's Docker
+      # Every Vitest project incl. api-int, so domain coverage counts the integration tests.
+      - run: pnpm test:cov # Testcontainers uses the runner's Docker
 
   e2e:
     runs-on: ubuntu-24.04
@@ -71,8 +72,8 @@ jobs:
         run: |
           cp .env.example .env
           docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait
-      - run: pnpm --filter @dishpatch/e2e exec playwright install --with-deps chromium
-      - run: pnpm test:e2e --project=chromium-desktop --project=chromium-mobile
+      - run: pnpm --filter @dishpatch/e2e exec playwright install --with-deps chromium firefox
+      - run: pnpm test:e2e --project=chromium-desktop --project=chromium-mobile --project=firefox-desktop
       - name: Stack logs on failure
         if: failure()
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color

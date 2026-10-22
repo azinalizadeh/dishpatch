@@ -49,6 +49,78 @@ Existing tools: [Grasshopper Signup](https://grasshoppersignup.com/potluck-signu
 - Security that fits the design (capability links, path-scoped cookies, CSRF via SameSite + Origin, strict CSP, SHA-pinned CI) and privacy by default.
 - Built from a written spec with AI agents, with a traceable story → test → milestone map ([08-agent-plan.md](08-agent-plan.md)).
 
+## Run it locally
+
+Needs Node 24.22.0 (`.nvmrc`), pnpm 12.14.0 (via Corepack) and Docker.
+
+```bash
+corepack enable && pnpm install
+cp .env.example .env                       # local settings; never commit .env
+docker compose up -d --build --wait        # Postgres + the API serving the built app on http://localhost:3000
+```
+
+Open http://localhost:3000, create a board, and open the invite link in a private window to join as a guest. For development with hot reload: `docker compose up -d db && pnpm db:migrate && pnpm dev` (web on :5173, API on :3000).
+
+| Command | What it checks |
+|---|---|
+| `pnpm lint && pnpm lint:sql && pnpm typecheck` | Biome, banned raw SQL, TypeScript strict |
+| `pnpm test` | Unit + component tests |
+| `pnpm test:int` | API tests against a real Postgres (Testcontainers, needs Docker) |
+| `pnpm test:cov` | Everything above with coverage thresholds (≥ 80% on shared code and domain services) |
+| `pnpm --filter @dishpatch/api test:race` | The 50-way claim race |
+| `docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait && pnpm test:e2e` | Playwright: two-browser real-time, race, reconnect, host flows, axe, screenshots |
+
+CI (`.github/workflows/ci.yml`) runs all of the above plus `pnpm audit --audit-level high`, a Trivy image scan and CodeQL, with every action pinned by commit SHA.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  B[Browser<br/>React SPA + EventSource] -- JSON + cookie --> M[Express 5<br/>helmet · rate limit · origin check · Zod]
+  M --> S[Session resolver] --> D[Domain services<br/>claim · coverage · host]
+  D -- one transaction: lock board row, change, seq+1, log --> DB[(PostgreSQL 18)]
+  D -- after commit --> BUS[Event bus] --> H[SSE hub]
+  H -- live events id: seq --> B
+  H -- replay after Last-Event-ID --> DB
+```
+
+One container serves both the API and the built SPA from one origin (no CORS). Full diagrams, data model and API contract: [04-architecture.md](04-architecture.md).
+
+## Screenshots
+
+| Board (desktop) | Board (mobile, dark) | Locked (mobile) |
+|---|---|---|
+| ![Board](docs/screenshots/board.png) | ![Board, mobile dark](docs/screenshots/board-mobile-dark.png) | ![Locked board](docs/screenshots/board-locked-mobile.png) |
+| **Claim conflict** | **Dietary coverage** | **Host settings** |
+| ![Claim conflict](docs/screenshots/claim-error.png) | ![Coverage](docs/screenshots/coverage.png) | ![Host settings](docs/screenshots/host.png) |
+
+Taken by `e2e/specs/visual.spec.ts` from the running app; every screen and state is compared with `design/screens/*.png`.
+
+## Performance
+
+Live-update latency on the local Docker stack (`e2e/specs/realtime.spec.ts`, Chromium, 20 runs each, 2026-10-21):
+
+| Event | p50 | **p95** | max | Target |
+|---|---|---|---|---|
+| Guest joins → appears in another window | 18 ms | **27 ms** | 28 ms | < 500 ms |
+| Slot claimed → appears in another window | 20 ms | **37 ms** | 47 ms | < 500 ms |
+
+## Deploying beyond your laptop
+
+Public hosting is out of scope for the MVP, but these settings matter if you do it:
+
+- `NODE_ENV=production`, `COOKIE_SECURE=true` and an `https://` `APP_ORIGIN` (turns on HSTS and `Secure` cookies).
+- **`TRUST_PROXY`**: leave it `false` when the app faces the internet directly. Behind a reverse proxy or load balancer set it to the number of proxy hops (usually `1`), so rate limits use the address your proxy saw. Never use `true` outside the E2E stack: it trusts every `X-Forwarded-For` entry, so a client could pick a new IP per request and dodge the limits.
+- Run **one** API instance: rate limits, SSE connections and the event bus live in memory.
+
+## Known limitations
+
+- **Single instance.** Rate limits, stream counts and live fan-out are in-process; scaling out needs a shared bus (e.g. Postgres `LISTEN/NOTIFY`) and a shared rate-limit store.
+- **Capability links, no accounts.** Anyone with the invite link can join, and anyone with the host link controls the board. Mitigations: the host link is shown once, the invite link can be rotated, the host can remove claims, and boards delete themselves 14 days after the party.
+- **Joining twice.** A guest on a second device (or after clearing site data) can join the same board again under a different name.
+- **Firefox E2E runs in CI only** (the real-time, race, reconnect and XSS specs); screenshots and axe scans use Chromium.
+- No alerting: logs are structured and redacted, but nothing pages anyone.
+
 ## Demo script (60 seconds)
 
 1. **0–10 s** — Two windows side by side. Mina creates "Friendsgiving" with 3 mains, 3 sides, 2 desserts; copies the invite link.
@@ -62,10 +134,8 @@ Existing tools: [Grasshopper Signup](https://grasshoppersignup.com/potluck-signu
 
 - **Database:** the schema lives in `apps/api/src/db/schema.ts`; migrations are generated with `pnpm db:generate` and committed under `apps/api/migrations/`. `pnpm db:migrate` applies them to the database in `.env`; the API container also applies them on boot (single instance).
 - **Integration tests** clone one migrated template database per test file inside a single Testcontainers Postgres, so files run in parallel.
-- **E2E:** start the stack with the CI override (`docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait`). It sets `TRUST_PROXY=true` so each Playwright test can present its own client IP and stay under the per-IP create limit (5 boards/hour). Never set `TRUST_PROXY=true` outside a known proxy.
+- **E2E:** start the stack with the CI override (`docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait`). It sets `TRUST_PROXY=true` so each Playwright test can present its own client IP and stay under the per-IP create limit (5 boards/hour). Never set `TRUST_PROXY=true` anywhere else (see Deploying).
 - **Live board (SSE):** the browser loads the snapshot, then opens `GET /api/events/:id/stream?after=<snapshot seq>`; on reconnect `EventSource` sends `Last-Event-ID` and the server replays missed `event_log` rows (or sends `resync` when they're gone). Writes publish only after commit. The client also pauses on the browser's `offline` event and reopens from its seq on `online`, because a dropped network can leave a dead socket open for minutes.
-- **Real-time latency:** `participant.joined` propagation in `e2e/specs/realtime.spec.ts` (20 joins, local Docker stack, 2026-10-21): chromium p50 18 ms, **p95 27 ms**, max 28 ms.
-- **Claim latency:** `slot.claimed` propagation in `e2e/specs/realtime.spec.ts` (20 claims, each by a fresh guest, local Docker stack, 2026-10-21): chromium p50 20 ms, **p95 37 ms**, max 47 ms (target < 500 ms). Firefox runs in CI only.
 - **Host links** are shown once on the share screen and kept only in memory; reloading the share screen goes straight to the board.
 - **Dietary coverage** is one shared function (`packages/shared/src/coverage.ts`): the API puts it in the snapshot and the browser recomputes it from the live slots, so both always agree.
 - **Host controls:** every host action checks `requireHost` inside the service. "New link" swaps the stored invite hash in one UPDATE, so the old link dies at once while existing sessions keep working. Delete is a hard cascade delete after the host types the exact board name.

@@ -44,4 +44,12 @@ describe('env', () => {
       CLEANUP_INTERVAL_MINUTES: 60,
     });
   });
+
+  it('TRUST_PROXY takes false, true or a hop count', () => {
+    expect(loadEnv({ ...valid, TRUST_PROXY: 'false' }).TRUST_PROXY).toBe(false);
+    expect(loadEnv({ ...valid, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
+    expect(loadEnv({ ...valid, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
+    expect(() => loadEnv({ ...valid, TRUST_PROXY: 'yes' })).toThrow(/TRUST_PROXY is invalid/);
+    expect(() => loadEnv({ ...valid, TRUST_PROXY: '0' })).toThrow(/TRUST_PROXY is invalid/);
+  });
 });

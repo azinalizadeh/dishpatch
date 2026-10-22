@@ -127,7 +127,7 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - A10 → publish strictly after commit (`event-log.int.test.ts › nothing is published when the transaction rolls back`).
 - **Definition of Done**
   - [x] All subtasks done; acceptance criteria of linked stories pass
-  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
   - [x] Security controls for this feature implemented and tested (at least one negative/abuse test)
   - [x] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
   - [x] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA

@@ -1,8 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { expect, test } from '../fixtures.ts';
+import { boardSlots, claimSlot, createBoard, joinBoard } from '../board.ts';
+import { clientIp, expect, test } from '../fixtures.ts';
 
-// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound; M3: join; M4: board; M6: coverage, host).
+// 06-test-plan.md › a11y.spec.ts. Screens are added milestone by milestone (M2: create, share, notfound; M3: join; M4: board; M6: coverage, host; M7: claim dialog, claim error, claimed and locked board).
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
 
 async function expectNoSeriousViolations(page: Page) {
@@ -141,10 +142,55 @@ test.describe('accessibility', () => {
         await expect(page.getByLabel('Event name')).toBeFocused();
         await expectNoSeriousViolations(page);
       });
+      test('claim dialog, claim error, claimed board and locked board have no serious violations', async ({
+        browser,
+        page,
+        baseURL,
+      }) => {
+        const board = await createBoard(page.request, baseURL);
+        const guestContext = await browser.newContext({
+          colorScheme: scheme,
+          extraHTTPHeaders: { 'X-Forwarded-For': clientIp() },
+        });
+        const guest = await guestContext.newPage();
+        try {
+          await joinBoard(guest.request, baseURL, board.invitePath, 'Priya');
+          await guest.goto(`/events/${board.eventId}`);
+          await expect(guest.getByText(/^Live/)).toBeVisible();
+
+          await guest.getByRole('button', { name: 'Claim open Mains slot 1' }).click();
+          const dialog = guest.getByRole('dialog', { name: 'What are you bringing?' });
+          await dialog.getByLabel('Dish').fill('Mushroom pie');
+          await expectNoSeriousViolations(guest);
+
+          // The host takes the slot while the dialog is open: the dialog turns into its error state.
+          const first = (await boardSlots(page.request, board.eventId)).find(
+            (s) => s.category === 'main',
+          );
+          if (!first) throw new Error('the board has no main slot');
+          await claimSlot(page.request, baseURL, board.eventId, first.id, 'Lasagne');
+          await expect(dialog.getByRole('alert')).toContainText('Mina just claimed this slot.');
+          await expectNoSeriousViolations(guest);
+
+          await guest.getByRole('button', { name: 'Back to board' }).click();
+          await expect(
+            guest.getByRole('article', { name: 'Mains slot 1: Lasagne, brought by Mina' }),
+          ).toBeVisible();
+          await expectNoSeriousViolations(guest);
+
+          await page.goto(`/events/${board.eventId}/host`);
+          await expect(page.getByText(/^Live/)).toBeVisible();
+          await page.getByRole('switch', { name: 'Lock the board' }).click();
+          await expect(guest.getByText('Mina locked the board.')).toBeVisible();
+          await expectNoSeriousViolations(guest);
+        } finally {
+          await guestContext.close();
+        }
+      });
     });
   }
 
-  test('board slots are reachable from the keyboard', async ({ page, baseURL }) => {
+  test('board slots are reachable and claimable from the keyboard', async ({ page, baseURL }) => {
     const res = await page.request.post('/api/events', {
       headers: { Origin: new URL(baseURL ?? 'http://localhost:3000').origin },
       data: {
@@ -166,6 +212,12 @@ test.describe('accessibility', () => {
     await page.keyboard.press('Enter');
     // The claim dialog (F4) opens from ?claim=<slotId>.
     await expect(page).toHaveURL(/\?claim=[0-9a-f-]{36}$/);
+    const dish = page.getByRole('dialog').getByLabel('Dish');
+    await expect(dish).toBeFocused();
+    await page.keyboard.type('Mushroom pie');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('article', { name: /Mains slot 1: Mushroom pie/ })).toBeVisible();
   });
 
   test('the create form works from the keyboard alone', async ({ page }) => {

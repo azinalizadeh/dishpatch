@@ -346,7 +346,7 @@ Names only; real values live in the developer's `.env` (git-ignored) and in CI s
 | `DATABASE_URL` | api, drizzle-kit | Postgres connection string |
 | `APP_ORIGIN` | api | Exact origin for Origin checks and link building (e.g. `http://localhost:5173`) |
 | `COOKIE_SECURE` | api | `true` in production (forces `Secure` cookies) |
-| `TRUST_PROXY` | api | `true` only when behind a known reverse proxy (affects client IP for rate limits) |
+| `TRUST_PROXY` | api | `false` (default) when facing clients directly; the proxy hop count (usually `1`) behind a reverse proxy; `true` (trust every hop) only for the E2E stack. Sets the client IP used by rate limits |
 | `LOG_LEVEL` | api | pino level |
 | `CLEANUP_INTERVAL_MINUTES` | api | Cleanup job period (default 60) |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | docker compose db | Local database only |

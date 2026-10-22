@@ -14,7 +14,7 @@
     "format": "biome format --write .",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run --project shared --project api-unit --project web",
-    "test:cov": "vitest run --project shared --project api-unit --project web --coverage",
+    "test:cov": "vitest run --coverage",
     "test:int": "vitest run --project api-int",
     "test:e2e": "pnpm --filter @dishpatch/e2e exec playwright test",
     "db:generate": "pnpm --filter @dishpatch/api db:generate",

@@ -58,9 +58,10 @@ export function buildApp(deps: AppDeps): Express {
 
   const api = express.Router();
   api.use(noStore);
+  // CSRF checks first (T2): a foreign-origin mutation is refused before its body is read.
+  api.use(originCheck(env.APP_ORIGIN));
   api.use(requireJsonBody);
   api.use(express.json({ limit: '16kb' }));
-  api.use(originCheck(env.APP_ORIGIN));
   api.use(cookieParser());
   api.use(healthRouter(db));
   api.use(eventsRouter({ db, clock, env, bus, limits }));
