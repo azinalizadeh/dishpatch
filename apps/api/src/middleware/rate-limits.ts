@@ -1,5 +1,5 @@
 import type { Request, RequestHandler } from 'express';
-import { type Options, rateLimit } from 'express-rate-limit';
+import { ipKeyGenerator, type Options, rateLimit } from 'express-rate-limit';
 import { rateLimited } from '../domain/errors.ts';
 import { hashToken } from '../domain/tokens.ts';
 import { SESSION_COOKIE } from './session.ts';
@@ -65,12 +65,18 @@ function notFoundsPerIp(windowMs: number, limit: number, message: string): Reque
   };
 }
 
-/** Keyed by the session cookie's hash; mount after `requireActor`, so only real sessions count. */
+/**
+ * Keyed by the session cookie's hash; mount after `requireActor`, so only real sessions count.
+ * A request without the cookie falls back to its IP (07-security.md › Rate limiting).
+ */
 const perSession = (windowMs: number, limit: number, message: string) =>
   limiter(windowMs, limit, message, {
     keyGenerator: (req: Request) => {
       const cookies = req.cookies as Record<string, string | undefined> | undefined;
-      return hashToken(cookies?.[SESSION_COOKIE] ?? '').toString('hex');
+      const session = cookies?.[SESSION_COOKIE];
+      return session
+        ? `session:${hashToken(session).toString('hex')}`
+        : `ip:${ipKeyGenerator(req.ip ?? '')}`;
     },
   });
 

@@ -37,5 +37,6 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
       requestId: String(req.id),
     },
   };
+  res.locals.errorCode = body.error.code;
   res.status(known?.status ?? 500).json(body);
 };

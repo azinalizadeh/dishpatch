@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { DomainError } from '../src/domain/errors.ts';
 import { createInProcessEventBus } from '../src/realtime/event-bus.ts';
+import { ORIGIN } from './helpers/requests.ts';
 import { testApp } from './helpers/test-app.ts';
 
 describe('app factory (smoke)', () => {
@@ -16,16 +17,29 @@ describe('app factory (smoke)', () => {
     const { app } = testApp();
     const res = await request(app)
       .post('/api/__test/echo')
+      .set('Origin', ORIGIN)
       .set('Content-Type', 'application/json')
       .send('{"oops"');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION');
   });
 
+  it('refuses a foreign-origin POST before reading its body (T2)', async () => {
+    const { app } = testApp();
+    const res = await request(app)
+      .post('/api/__test/echo')
+      .set('Origin', 'https://evil.example')
+      .set('Content-Type', 'application/json')
+      .send('{"oops"');
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('BAD_ORIGIN');
+  });
+
   it('maps a body over 16 KB to 413', async () => {
     const { app } = testApp();
     const res = await request(app)
       .post('/api/__test/echo')
+      .set('Origin', ORIGIN)
       .send({ big: 'x'.repeat(17 * 1024) });
     expect(res.status).toBe(413);
     expect(res.body.error.code).toBe('PAYLOAD_TOO_LARGE');
@@ -33,7 +47,11 @@ describe('app factory (smoke)', () => {
 
   it('rejects a form-encoded body with 415', async () => {
     const { app } = testApp();
-    const res = await request(app).post('/api/__test/echo').type('form').send('a=1');
+    const res = await request(app)
+      .post('/api/__test/echo')
+      .set('Origin', ORIGIN)
+      .type('form')
+      .send('a=1');
     expect(res.status).toBe(415);
     expect(res.body.error.code).toBe('UNSUPPORTED_MEDIA_TYPE');
   });

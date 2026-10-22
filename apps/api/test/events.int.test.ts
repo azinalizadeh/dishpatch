@@ -66,6 +66,12 @@ describe('POST /api/events', () => {
       post(app, '/api/events', payload()).set('X-Forwarded-For', `${spoofed}, 203.0.113.7`);
     for (let i = 0; i < 5; i++) expect((await create(`10.0.0.${i}`)).status).toBe(201);
     expect((await create('10.0.0.99')).status).toBe(429);
+    // A different client behind the same proxy still has its own budget.
+    const other = await post(app, '/api/events', payload()).set(
+      'X-Forwarded-For',
+      '10.0.0.1, 203.0.113.8',
+    );
+    expect(other.status).toBe(201);
   });
 
   it('rejects body over 16 KB with 413', async () => {

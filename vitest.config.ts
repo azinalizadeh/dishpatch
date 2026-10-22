@@ -10,8 +10,10 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      // Matched against each project's own root (e.g. `src/coverage.ts` in packages/shared), so a
-      // repo-relative pattern such as 'packages/shared/src/**' matches nothing.
+      // `include` is matched against each project's own root (e.g. `src/coverage.ts` in
+      // packages/shared), so a repo-relative pattern such as 'packages/shared/src/**' matches
+      // nothing. The threshold keys below are repo-relative. Run every project (pnpm test:cov):
+      // the domain services are covered by the api-int tests.
       include: ['**/src/**'],
       reporter: ['text-summary', 'html'],
       // 06-test-plan.md › CI quality gates (unit job)
