@@ -5,7 +5,7 @@ import { createDb } from '../src/db/client.ts';
 import { resolveActor } from '../src/middleware/session.ts';
 import { intApp, useTestDb } from './helpers/int-app.ts';
 import { post, sessionCookie } from './helpers/requests.ts';
-import { fixedClock } from './helpers/test-app.ts';
+import { fixedClock, testEnv } from './helpers/test-app.ts';
 
 const clock = fixedClock('2026-10-20T12:00:00Z');
 // The shared schema checks "in the future" against the real clock, so the date must stay ahead of it.
@@ -57,6 +57,15 @@ describe('POST /api/events', () => {
     });
     expect(res.body.error.retryAfterSeconds).toBeGreaterThan(0);
     expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('behind one trusted proxy, a spoofed X-Forwarded-For does not reset the create limit', async () => {
+    const { app } = intApp(db, { clock, env: testEnv({ TRUST_PROXY: '1' }) });
+    // The proxy appends the address it saw; everything left of it came from the client.
+    const create = (spoofed: string) =>
+      post(app, '/api/events', payload()).set('X-Forwarded-For', `${spoofed}, 203.0.113.7`);
+    for (let i = 0; i < 5; i++) expect((await create(`10.0.0.${i}`)).status).toBe(201);
+    expect((await create('10.0.0.99')).status).toBe(429);
   });
 
   it('rejects body over 16 KB with 413', async () => {
