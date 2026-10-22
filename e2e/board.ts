@@ -36,10 +36,11 @@ export async function joinBoard(
   baseURL: string | undefined,
   invitePath: string,
   name: string,
+  dietaryNeeds: string[] = [],
 ) {
   const res = await request.post(`/api/invites/${invitePath.split('/').pop()}/join`, {
     headers: { Origin: originOf(baseURL), 'X-Forwarded-For': clientIp() },
-    data: { displayName: name, dietaryNeeds: [] },
+    data: { displayName: name, dietaryNeeds },
   });
   expect(res.status()).toBe(201);
 }

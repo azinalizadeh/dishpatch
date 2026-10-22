@@ -68,6 +68,28 @@ export function postJson<T>(
 }
 
 /** DELETEs on the same-origin API (cookies included) and parses the answer with `schema`. */
-export function deleteJson<T>(path: string, schema: Schema<T>, signal?: AbortSignal): Promise<T> {
-  return requestJson(path, schema, { method: 'DELETE', signal: signal ?? null });
+export function deleteJson<T>(
+  path: string,
+  schema: Schema<T>,
+  signal?: AbortSignal,
+  body?: unknown,
+): Promise<T> {
+  return requestJson(path, schema, {
+    method: 'DELETE',
+    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+    body: body === undefined ? null : JSON.stringify(body),
+    signal: signal ?? null,
+  });
 }
+
+/** PATCHes JSON on the same-origin API (cookies included) and parses the answer with `schema`. */
+export function patchJson<T>(path: string, schema: Schema<T>, body: unknown): Promise<T> {
+  return requestJson(path, schema, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+/** For answers with no body (204). */
+export const NoContent: Schema<void> = { parse: () => undefined };

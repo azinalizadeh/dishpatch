@@ -67,6 +67,10 @@ Existing tools: [Grasshopper Signup](https://grasshoppersignup.com/potluck-signu
 - **Real-time latency:** `participant.joined` propagation in `e2e/specs/realtime.spec.ts` (20 joins, local Docker stack, 2026-10-21): chromium p50 18 ms, **p95 27 ms**, max 28 ms.
 - **Claim latency:** `slot.claimed` propagation in `e2e/specs/realtime.spec.ts` (20 claims, each by a fresh guest, local Docker stack, 2026-10-21): chromium p50 20 ms, **p95 37 ms**, max 47 ms (target < 500 ms). Firefox runs in CI only.
 - **Host links** are shown once on the share screen and kept only in memory; reloading the share screen goes straight to the board.
+- **Dietary coverage** is one shared function (`packages/shared/src/coverage.ts`): the API puts it in the snapshot and the browser recomputes it from the live slots, so both always agree.
+- **Host controls:** every host action checks `requireHost` inside the service. "New link" swaps the stored invite hash in one UPDATE, so the old link dies at once while existing sessions keep working. Delete is a hard cascade delete after the host types the exact board name.
+- **Cleanup job:** runs at boot and every `CLEANUP_INTERVAL_MINUTES`, deletes boards 14 days after the party and event-log rows older than 24 h, and logs counts only.
+- **Known limit:** there are no accounts, so a guest on a second device (or after clearing site data) can join the same board twice. Rotating the invite link stops further joins from the old link.
 
 ## Package contents
 

@@ -3,13 +3,26 @@ export {
   BoardEvent,
   type BoardEventType,
   type BoardState,
+  bySlotOrder,
   isSequenced,
   SequencedBoardEvent,
 } from './board-events.ts';
 export { CATEGORIES, type Category, LIMITS } from './categories.ts';
+export {
+  type CoverageChange,
+  type CoverageHint,
+  type CoverageStatus,
+  computeCoverage,
+  effectiveTags,
+  type NeedCoverage,
+  previewCoverage,
+  topHint,
+} from './coverage.ts';
 export { DIETARY, DIETARY_LABELS, type Dietary } from './dietary.ts';
 export { ERROR_CODES, type ErrorCode } from './errors.ts';
 export {
+  AddSlotInput,
+  AddSlotResponse,
   type ApiError,
   ApiErrorSchema,
   CategorySchema,
@@ -17,15 +30,21 @@ export {
   ClaimResponse,
   CreateEventInput,
   CreateEventResponse,
+  DeleteEventInput,
   DietarySchema,
   HostLinkResponse,
   IdParam,
   InvitePreview,
   JoinInput,
   JoinResponse,
+  NeedCoverageView,
   ParticipantView,
+  RotateInviteResponse,
+  SeqResponse,
   SlotCountInput,
   SlotView,
   Snapshot,
   TokenParam,
+  UpdateEventInput,
+  UpdateEventResponse,
 } from './schemas.ts';

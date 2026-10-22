@@ -57,8 +57,23 @@ export const claimLimit = (max: number) =>
   );
 
 export const boardLocked = () =>
-  new DomainError(423, 'BOARD_LOCKED', 'The host has locked the board, so claims are closed.');
+  new DomainError(
+    423,
+    'BOARD_LOCKED',
+    'The board is locked, so claims are closed. The host can unlock it in Host settings.',
+  );
 
 export const notOwner = () => new DomainError(403, 'NOT_OWNER', "That isn't your claim.");
 
 export const notClaimed = () => new DomainError(409, 'NOT_CLAIMED', 'That slot is already open.');
+
+export const hostOnly = () =>
+  new DomainError(403, 'HOST_ONLY', 'Only the host can change board settings.');
+
+export const slotLimit = (message: string) => new DomainError(409, 'SLOT_LIMIT', message);
+
+export const slotClaimed = () =>
+  new DomainError(409, 'SLOT_CLAIMED', 'Remove the claim first, then remove the slot.');
+
+export const confirmMismatch = () =>
+  new DomainError(400, 'CONFIRM_MISMATCH', "That doesn't match the board name. Type it exactly.");

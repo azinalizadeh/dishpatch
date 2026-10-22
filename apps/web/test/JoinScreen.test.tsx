@@ -25,6 +25,7 @@ const snapshot = {
   },
   slots: [],
   participants: [{ id: participantId, displayName: 'Priya', dietaryNeeds: [], role: 'guest' }],
+  coverage: [],
   me: { participantId, role: 'guest' },
   seq: 1,
 };

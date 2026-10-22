@@ -190,10 +190,10 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
 
 - **Stories:** US-10, US-11 · **Screens:** `board` sidebar + mobile banner, `coverage` (default, empty), `claim` preview banner (design/screens/coverage*.png) · **Endpoints:** none new (part of snapshot + SSE) · **Entities:** participants.dietary_needs, slots.dish_tags
 - **Subtasks**
-  - [ ] F5.1 `[domain]` `effectiveTags` (vegan ⇒ vegetarian + dairy_free) and `computeCoverage` (rule: guests 0 → omitted; dishes 0 → gap; mains 0 or dishes 1 → thin; else ok; sorted gap → thin → ok, then guests desc). Files: `packages/shared/src/coverage.ts`, `packages/shared/test/coverage.test.ts`. Skill: `tdd`
-  - [ ] F5.2 `[domain]` `topHint(coverage)` → `{need, categories: 'main' | 'any'}` (thin → main slots only; gap → any open slot) and `previewCoverage(current, draftClaim)` for the claim dialog banner. Files: `packages/shared/src/coverage.ts`, `packages/shared/test/coverage.test.ts`. Skill: `tdd`
-  - [ ] F5.3 `[api]` Include `coverage` in the snapshot (server uses the same shared function). Files: `apps/api/src/routes/events.ts`, `apps/api/test/snapshot.int.test.ts`. Skill: none
-  - [ ] F5.4 `[ui]` `CoverageMeter` (compact + full), board sidebar card, mobile summary banner, hint chip on open `SlotCard`s, `CoverageScreen` with empty state and rules card, claim-dialog preview banner. Files: `apps/web/src/components/CoverageMeter.tsx`, `apps/web/src/screens/CoverageScreen.tsx`, `apps/web/src/components/SlotCard.tsx`, `apps/web/test/CoverageMeter.test.tsx`. Skill: `design-parity`
+  - [x] F5.1 `[domain]` `effectiveTags` (vegan ⇒ vegetarian + dairy_free) and `computeCoverage` (rule: guests 0 → omitted; dishes 0 → gap; mains 0 or dishes 1 → thin; else ok; sorted gap → thin → ok, then guests desc). Files: `packages/shared/src/coverage.ts`, `packages/shared/test/coverage.test.ts`. Skill: `tdd`
+  - [x] F5.2 `[domain]` `topHint(coverage)` → `{need, categories: 'main' | 'any'}` (thin → main slots only; gap → any open slot) and `previewCoverage(current, draftClaim)` for the claim dialog banner. Files: `packages/shared/src/coverage.ts`, `packages/shared/test/coverage.test.ts`. Skill: `tdd`
+  - [x] F5.3 `[api]` Include `coverage` in the snapshot (server uses the same shared function). Files: `apps/api/src/routes/events.ts`, `apps/api/test/snapshot.int.test.ts`. Skill: none
+  - [x] F5.4 `[ui]` `CoverageMeter` (compact + full), board sidebar card, mobile summary banner, hint chip on open `SlotCard`s, `CoverageScreen` with empty state and rules card, claim-dialog preview banner. Files: `apps/web/src/components/CoverageMeter.tsx`, `apps/web/src/screens/CoverageScreen.tsx`, `apps/web/src/components/SlotCard.tsx`, `apps/web/test/CoverageMeter.test.tsx`. Skill: `design-parity`
 - **Tests**
   - Unit: `coverage.test.ts › vegan dish counts for vegetarian and dairy-free guests`.
   - Unit: `coverage.test.ts › two vegan guests with vegan side and salad only is thin`.
@@ -211,18 +211,18 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - T5 → tag values validated by Zod + DB CHECK, so the coverage maths can't be fed arbitrary strings.
   - Privacy copy on `coverage` and `join` explains what's shared.
 - **Definition of Done**
-  - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
-  - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
-  - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
-  - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
-  - [ ] Lint/format/typecheck clean; no new warnings
-  - [ ] No secrets in code or logs; errors handled with user-friendly messages
-  - [ ] README/docs updated if behavior or setup changed
-  - [ ] Any skill used for this feature is logged in skills/usage-log.md
+  - [x] All subtasks done; acceptance criteria of linked stories pass
+  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [x] Security controls for this feature implemented and tested (at least one negative/abuse test)
+  - [x] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
+  - [x] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
+  - [x] Lint/format/typecheck clean; no new warnings
+  - [x] No secrets in code or logs; errors handled with user-friendly messages
+  - [x] README/docs updated if behavior or setup changed
+  - [x] Any skill used for this feature is logged in skills/usage-log.md
   - Feature-specific:
-  - [ ] Server and client produce identical coverage for the same data (one shared function, one integration test)
-  - [ ] `packages/shared/src/coverage.ts` has 100% branch coverage
+  - [x] Server and client produce identical coverage for the same data (one shared function, one integration test)
+  - [x] `packages/shared/src/coverage.ts` has 100% branch coverage
 
 ---
 
@@ -230,11 +230,11 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
 
 - **Stories:** US-12, US-13, US-14 · **Screens:** `host` (default, confirm), `board` (locked), `notfound` (design/screens/host*.png, board-locked*.png) · **Endpoints:** `PATCH /api/events/:eventId`, `POST /api/events/:eventId/slots`, `DELETE /api/events/:eventId/slots/:slotId`, `POST /api/events/:eventId/invite/rotate`, `DELETE /api/events/:eventId`, host branch of `DELETE …/claim` · **Entities:** events, slots, event_log
 - **Subtasks**
-  - [ ] F6.1 `[domain]` `HostService` with `requireHost(actor)`: `setLocked`, `addSlot` (≤ 12 per category, ≤ 40 total → `SLOT_LIMIT`), `removeSlot` (claimed → `SLOT_CLAIMED`), `rotateInvite` (atomic hash swap), `deleteEvent(confirmTitle)` (exact match → cascade delete → publish `event.deleted`). Files: `apps/api/src/domain/host.ts`, `apps/api/test/host.int.test.ts`. Skill: `tdd`
-  - [ ] F6.2 `[api]` Host routes with limits (rotate 5/hour/event, delete 5/hour/session). Files: `apps/api/src/routes/{events.ts,slots.ts}`, `apps/api/test/host.int.test.ts`. Skill: `tdd`
-  - [ ] F6.3 `[infra]` Cleanup job: every `CLEANUP_INTERVAL_MINUTES` delete events with `expires_at < now()` (cascade) and `event_log` rows older than 24 h; runs once at boot; logs counts only. Files: `apps/api/src/jobs/cleanup.ts`, `apps/api/test/cleanup.int.test.ts`. Skill: `tdd`
-  - [ ] F6.4 `[ui]` `HostScreen` (Switch, rotate with inline LinkBox, slot steppers with claimed counts, danger card, alertdialog with typed confirmation), host-only "Host settings" button, host ✕ on every card with confirm, locked banner wiring. Files: `apps/web/src/screens/HostScreen.tsx`, `apps/web/src/components/{Switch,Dialog,Stepper}.tsx`, `apps/web/test/HostScreen.test.tsx`. Skill: `design-parity`
-  - [ ] F6.5 `[test]` E2E host controls (lock propagates, rotate kills old link, delete sends viewers to notfound). Files: `e2e/specs/host-controls.spec.ts`. Skill: none
+  - [x] F6.1 `[domain]` `HostService` with `requireHost(actor)`: `setLocked`, `addSlot` (≤ 12 per category, ≤ 40 total → `SLOT_LIMIT`), `removeSlot` (claimed → `SLOT_CLAIMED`), `rotateInvite` (atomic hash swap), `deleteEvent(confirmTitle)` (exact match → cascade delete → publish `event.deleted`). Files: `apps/api/src/domain/host.ts`, `apps/api/test/host.int.test.ts`. Skill: `tdd`
+  - [x] F6.2 `[api]` Host routes with limits (rotate 5/hour/event, delete 5/hour/session). Files: `apps/api/src/routes/{events.ts,slots.ts}`, `apps/api/test/host.int.test.ts`. Skill: `tdd`
+  - [x] F6.3 `[infra]` Cleanup job: every `CLEANUP_INTERVAL_MINUTES` delete events with `expires_at < now()` (cascade) and `event_log` rows older than 24 h; runs once at boot; logs counts only. Files: `apps/api/src/jobs/cleanup.ts`, `apps/api/test/cleanup.int.test.ts`. Skill: `tdd`
+  - [x] F6.4 `[ui]` `HostScreen` (Switch, rotate with inline LinkBox, slot steppers with claimed counts, danger card, alertdialog with typed confirmation), host-only "Host settings" button, host ✕ on every card with confirm, locked banner wiring. Files: `apps/web/src/screens/HostScreen.tsx`, `apps/web/src/components/{Switch,Dialog,Stepper}.tsx`, `apps/web/test/HostScreen.test.tsx`. Skill: `design-parity`
+  - [x] F6.5 `[test]` E2E host controls (lock propagates, rotate kills old link, delete sends viewers to notfound). Files: `e2e/specs/host-controls.spec.ts`. Skill: none
 - **Tests**
   - Integration: `host.int.test.ts › guest PATCH lock returns 403 HOST_ONLY`; `› host lock sets locked, bumps seq and publishes event.updated`; `› claim after lock returns 423 BOARD_LOCKED`.
   - Integration: `host.int.test.ts › rotated-out invite token returns 404 on preview and join`; `› existing guest sessions still work after rotation`.
@@ -251,15 +251,15 @@ Layer tags: `[db]` `[api]` `[domain]` `[ui]` `[test]` `[infra]`.
   - R1 repudiation → actor recorded in `event_log`.
   - Privacy → hard delete + cleanup job (tests above); delete requires typed confirmation to prevent accidental data loss.
 - **Definition of Done**
-  - [ ] All subtasks done; acceptance criteria of linked stories pass
-  - [ ] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
-  - [ ] Security controls for this feature implemented and tested (at least one negative/abuse test)
-  - [ ] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
-  - [ ] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
-  - [ ] Lint/format/typecheck clean; no new warnings
-  - [ ] No secrets in code or logs; errors handled with user-friendly messages
-  - [ ] README/docs updated if behavior or setup changed
-  - [ ] Any skill used for this feature is logged in skills/usage-log.md
+  - [x] All subtasks done; acceptance criteria of linked stories pass
+  - [x] Listed tests written and green locally and in CI; coverage of new domain code ≥ 80%
+  - [x] Security controls for this feature implemented and tested (at least one negative/abuse test)
+  - [x] UI matches design/screens/*.png for all states (loading/empty/error/success), including dark mode
+  - [x] Accessibility: labels/content descriptions, touch targets ≥ 48dp, keyboard navigation (web), contrast AA
+  - [x] Lint/format/typecheck clean; no new warnings
+  - [x] No secrets in code or logs; errors handled with user-friendly messages
+  - [x] README/docs updated if behavior or setup changed
+  - [x] Any skill used for this feature is logged in skills/usage-log.md
   - Feature-specific:
-  - [ ] Every host-only route is covered by a guest-session negative test (one per route, 5 total)
-  - [ ] After `DELETE /api/events/:id`, a `SELECT count(*)` across all five tables for that event id returns 0
+  - [x] Every host-only route is covered by a guest-session negative test (one per route, 5 total)
+  - [x] After `DELETE /api/events/:id`, a `SELECT count(*)` across all five tables for that event id returns 0

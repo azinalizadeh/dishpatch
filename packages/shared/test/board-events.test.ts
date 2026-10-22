@@ -34,6 +34,7 @@ function board(overrides: Partial<Snapshot> = {}): Snapshot {
     },
     slots: [openSlot(SLOT_A, 0), openSlot(SLOT_B, 1)],
     participants: [{ id: HOST, displayName: 'Mina', dietaryNeeds: [], role: 'host' }],
+    coverage: [],
     me: { participantId: HOST, role: 'host' },
     seq: 3,
     ...overrides,
@@ -122,5 +123,10 @@ describe('BoardEvent schema', () => {
       }).success,
     ).toBe(true);
     expect(BoardEvent.safeParse({ type: 'slot.exploded', seq: 1 }).success).toBe(false);
+  });
+  it('invite.rotated only moves seq on', () => {
+    const state = board();
+    const next = applyBoardEvent(state, { type: 'invite.rotated', seq: 4 });
+    expect(next).toEqual({ ...state, seq: 4 });
   });
 });

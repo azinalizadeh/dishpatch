@@ -176,7 +176,7 @@ async function openMockupBoardAsPriya(
   browser: Browser,
   options: BrowserContextOptions,
   baseURL: string | undefined,
-  { withClaims = false } = {},
+  { withClaims = false, keepHost = false } = {},
 ) {
   const host = await open(browser, options);
   const now = new Date();
@@ -190,7 +190,8 @@ async function openMockupBoardAsPriya(
       startsAt: new Date(`${year}-11-21T18:00:00Z`).toISOString(),
       location: "Mina's flat, 3rd floor",
       hostName: 'Mina',
-      hostDietaryNeeds: [],
+      // The mockup's coverage: two guests each need vegan and halal.
+      hostDietaryNeeds: ['halal'],
       slots: [
         { category: 'main', count: 3 },
         { category: 'side', count: 3 },
@@ -200,7 +201,11 @@ async function openMockupBoardAsPriya(
       ],
     },
   });
-  const { eventId, inviteUrl } = (await res.json()) as { eventId: string; inviteUrl: string };
+  const { eventId, inviteUrl, hostUrl } = (await res.json()) as {
+    eventId: string;
+    inviteUrl: string;
+    hostUrl: string;
+  };
   const join = `/api/invites/${new URL(inviteUrl).pathname.split('/').pop()}/join`;
   const slotsRes = await host.page.request.get(`/api/events/${eventId}`);
   const slotIds = ((await slotsRes.json()) as { slots: { id: string }[] }).slots.map((s) => s.id);
@@ -217,7 +222,7 @@ async function openMockupBoardAsPriya(
   await claimAs(host.page.request, 'Mina');
   const guests: [string, string[]][] = [
     ['Reza', ['halal']],
-    ['Sam', []],
+    ['Sam', ['vegan']],
     ['Leila', ['nut_free']],
     ['Jonah', ['gluten_free']],
   ];
@@ -225,14 +230,20 @@ async function openMockupBoardAsPriya(
     await host.page.request.post(join, { headers, data: { displayName, dietaryNeeds } });
     await claimAs(host.page.request, displayName);
   }
-  await host.context.close();
+  if (keepHost) {
+    // The joins above left a guest's cookie in this context: take the host's back via the host link.
+    const hostToken = new URL(hostUrl).pathname.split('/').pop();
+    await host.page.request.post(`/api/host-links/${hostToken}/session`, { headers });
+  } else {
+    await host.context.close();
+  }
   const priya = await open(browser, options);
   await priya.page.request.post(join, {
     headers,
     data: { displayName: 'Priya', dietaryNeeds: ['vegan'] },
   });
   await claimAs(priya.page.request, 'Priya');
-  return { ...priya, eventId, join, slotIds, headers };
+  return { ...priya, host, eventId, join, slotIds, headers };
 }
 
 for (const { suffix, options } of VARIANTS) {
@@ -363,6 +374,85 @@ for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-da
     await sam.context.close();
     await page.getByRole('alert').filter({ hasText: 'just took the last dessert slot' }).waitFor();
     await shot(page, `board-conflict${suffix}`);
+    await context.close();
+  });
+}
+
+for (const { suffix, options } of VARIANTS) {
+  test(`coverage${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, eventId } = await openMockupBoardAsPriya(browser, options, baseURL, {
+      withClaims: true,
+    });
+    await page.goto(`/events/${eventId}/coverage`);
+    await page.getByText(/^Live/).waitFor();
+    await page.getByRole('list', { name: 'Dietary needs' }).waitFor();
+    await shot(page, `coverage${suffix}`);
+    await context.close();
+  });
+
+  test(`host${suffix}`, async ({ browser, baseURL }) => {
+    const { context, host, eventId } = await openMockupBoardAsPriya(browser, options, baseURL, {
+      withClaims: true,
+      keepHost: true,
+    });
+    await host.page.goto(`/events/${eventId}/host`);
+    await host.page.getByText('Live').first().waitFor();
+    await host.page.getByRole('switch', { name: 'Lock the board' }).waitFor();
+    await shot(host.page, `host${suffix}`);
+    await host.context.close();
+    await context.close();
+  });
+}
+
+for (const { suffix, options } of VARIANTS.filter((v) => !v.suffix.endsWith('-dark'))) {
+  test(`coverage-empty${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page } = await open(browser, options);
+    // The plain mockup board: nobody listed a need. The host's session stays in this context.
+    await seedMockupBoard(page, baseURL);
+    const res = await page.request.post('/api/events', {
+      headers: { Origin: new URL(baseURL ?? 'http://localhost:3000').origin },
+      data: {
+        title: "Friendsgiving at Mina's",
+        startsAt: new Date(Date.now() + 30 * 24 * 3600_000).toISOString(),
+        hostName: 'Mina',
+        hostDietaryNeeds: [],
+        slots: [{ category: 'main', count: 3 }],
+      },
+    });
+    const { eventId } = (await res.json()) as { eventId: string };
+    await page.goto(`/events/${eventId}/coverage`);
+    await page.getByText(/No one has listed dietary needs yet/).waitFor();
+    await shot(page, `coverage-empty${suffix}`);
+    await context.close();
+  });
+
+  test(`host-confirm${suffix}`, async ({ browser, baseURL }) => {
+    const { context, host, eventId } = await openMockupBoardAsPriya(browser, options, baseURL, {
+      withClaims: true,
+      keepHost: true,
+    });
+    await host.page.goto(`/events/${eventId}/host`);
+    await host.page.getByText('Live').first().waitFor();
+    await host.page.getByRole('button', { name: 'Delete board' }).click();
+    await host.page.getByRole('alertdialog').waitFor();
+    await shot(host.page, `host-confirm${suffix}`);
+    await host.context.close();
+    await context.close();
+  });
+
+  test(`board-locked${suffix}`, async ({ browser, baseURL }) => {
+    const { context, page, host, eventId, headers } = await openMockupBoardAsPriya(
+      browser,
+      options,
+      baseURL,
+      { withClaims: true, keepHost: true },
+    );
+    await host.page.request.patch(`/api/events/${eventId}`, { headers, data: { locked: true } });
+    await host.context.close();
+    await page.goto(`/events/${eventId}`);
+    await page.getByText('Live').first().waitFor();
+    await page.getByText(/locked the board/).waitFor();
+    await shot(page, `board-locked${suffix}`);
     await context.close();
   });
 }

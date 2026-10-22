@@ -161,7 +161,24 @@ export const SlotView = z.object({
 
 export type SlotView = z.infer<typeof SlotView>;
 
-/** `GET /api/events/:eventId` for a member of the board. `coverage` joins it with F5. */
+/** One row of `computeCoverage` (packages/shared/src/coverage.ts). */
+export const NeedCoverageView = z.object({
+  need: DietarySchema,
+  /** Participants who listed this need. */
+  guests: z.number().int().min(1),
+  /** Claimed dishes that suit it. */
+  dishes: z.number().int().min(0),
+  /** How many of those dishes are mains. */
+  mains: z.number().int().min(0),
+  status: z.enum(['ok', 'thin', 'gap']),
+});
+
+export type NeedCoverageView = z.infer<typeof NeedCoverageView>;
+
+/**
+ * `GET /api/events/:eventId` for a member of the board. `coverage` is what the server computed for
+ * this snapshot; the web app recomputes it from `slots` and `participants` as the board changes.
+ */
 export const Snapshot = z.object({
   event: z.object({
     id: z.uuid(),
@@ -172,6 +189,7 @@ export const Snapshot = z.object({
   }),
   slots: z.array(SlotView),
   participants: z.array(ParticipantView),
+  coverage: z.array(NeedCoverageView),
   me: z.object({ participantId: z.uuid(), role: z.enum(['host', 'guest']) }),
   seq: z.number().int().min(0),
 });
@@ -188,3 +206,41 @@ export const IdParam = z.uuid();
 
 /** Capability tokens: 32 random bytes as base64url (07-security.md › Authentication). */
 export const TokenParam = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
+
+/** `PATCH /api/events/:eventId` (API #9): the host locks or reopens the board. */
+export const UpdateEventInput = z.object({ locked: z.boolean() });
+
+export type UpdateEventInput = z.infer<typeof UpdateEventInput>;
+
+export const UpdateEventResponse = z.object({
+  event: Snapshot.shape.event,
+  seq: z.number().int().min(1),
+});
+
+export type UpdateEventResponse = z.infer<typeof UpdateEventResponse>;
+
+/** `POST /api/events/:eventId/slots` (API #10): one more open slot in a category. */
+export const AddSlotInput = z.object({ category: CategorySchema });
+
+export type AddSlotInput = z.infer<typeof AddSlotInput>;
+
+export const AddSlotResponse = ClaimResponse;
+
+export type AddSlotResponse = ClaimResponse;
+
+/** `DELETE /api/events/:eventId/slots/:slotId` (API #11). */
+export const SeqResponse = z.object({ seq: z.number().int().min(1) });
+
+export type SeqResponse = z.infer<typeof SeqResponse>;
+
+/** `POST /api/events/:eventId/invite/rotate` (API #12). */
+export const RotateInviteResponse = z.object({ inviteUrl: z.url(), seq: z.number().int().min(1) });
+
+export type RotateInviteResponse = z.infer<typeof RotateInviteResponse>;
+
+/** `DELETE /api/events/:eventId` (API #13): the board's exact title, typed by the host. */
+export const DeleteEventInput = z.object({
+  confirmTitle: z.string().max(LIMITS.titleMax * 2, 'Type the board name exactly.'),
+});
+
+export type DeleteEventInput = z.infer<typeof DeleteEventInput>;

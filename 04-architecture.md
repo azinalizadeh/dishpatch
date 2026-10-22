@@ -250,7 +250,7 @@ Session = cookie `dp_sess` with `Path=/api/events/<eventId>`, `HttpOnly`, `SameS
 | 3 | `GET /api/invites/:inviteToken` | token | — | 200 `{ title, startsAt, location, hostName, participantCount }` | 404 `INVITE_INVALID` (also used for expired — see note), 429 | 30 / min / IP |
 | 4 | `POST /api/invites/:inviteToken/join` | token | `JoinInput { displayName, dietaryNeeds[] }` | 201 `{ eventId, participantId }` + Set-Cookie | 400, 404 `INVITE_INVALID`, 409 `NAME_TAKEN`, 409 `EVENT_FULL`, 429 | 10 / min / IP |
 | 5 | `GET /api/events/:eventId` | session | — | 200 `Snapshot { event {id,title,startsAt,location,locked}, slots[], participants[{id,displayName,dietaryNeeds,role}], coverage, me {participantId, role}, seq }` | 404 | 120 / min / session |
-| 6 | `GET /api/events/:eventId/stream` | session | header `Last-Event-ID?` (or `?after=<snapshot seq>` on the first connect, since `EventSource` can't set headers) | 200 `text/event-stream`: `retry: 3000`, events `slot.claimed`, `slot.released`, `slot.added`, `slot.removed`, `participant.joined`, `event.updated`, `event.deleted`, `presence`, `resync`; comment heartbeat every 20 s | 404, 429 `TOO_MANY_STREAMS` | 5 concurrent / session, 20 / IP |
+| 6 | `GET /api/events/:eventId/stream` | session | header `Last-Event-ID?` (or `?after=<snapshot seq>` on the first connect, since `EventSource` can't set headers) | 200 `text/event-stream`: `retry: 3000`, events `slot.claimed`, `slot.released`, `slot.added`, `slot.removed`, `participant.joined`, `event.updated`, `invite.rotated`, `event.deleted`, `presence`, `resync`; comment heartbeat every 20 s | 404, 429 `TOO_MANY_STREAMS` | 5 concurrent / session, 20 / IP |
 | 7 | `POST /api/events/:eventId/slots/:slotId/claim` | session | `ClaimInput { dishName (1–60), dishTags[] }` | 200 `{ slot, seq }` | 400, 404, 409 `SLOT_TAKEN {claimedBy}`, 409 `CLAIM_LIMIT`, 423 `BOARD_LOCKED`, 403 `BAD_ORIGIN` | 30 / min / session |
 | 8 | `DELETE /api/events/:eventId/slots/:slotId/claim` | session (owner or host) | — | 200 `{ slot, seq }` | 403 `NOT_OWNER`, 404, 409 `NOT_CLAIMED`, 423 `BOARD_LOCKED` | 30 / min / session |
 | 9 | `PATCH /api/events/:eventId` | host | `{ locked: boolean }` | 200 `{ event, seq }` | 400, 403 `HOST_ONLY`, 404 | 30 / min / session |
@@ -262,7 +262,7 @@ Session = cookie `dp_sess` with `Path=/api/events/<eventId>`, `HttpOnly`, `SameS
 
 Notes:
 - Expired events and rotated invites both return 404 `INVITE_INVALID` from #3/#4 so the response doesn't say whether a board ever existed. The UI shows the same `join/error` screen.
-- SSE event payloads: `slot.claimed {slot: {id, category, position, claimedBy: {id, displayName}, dishName, dishTags}}`, `slot.released {slotId}`, `slot.added {slot}`, `slot.removed {slotId}`, `participant.joined {participant}`, `event.updated {locked}`, `presence {count}`, `resync {}`, `event.deleted {}`. Coverage is recomputed client-side with the shared `computeCoverage` function.
+- SSE event payloads: `slot.claimed {slot: {id, category, position, claimedBy: {id, displayName}, dishName, dishTags}}`, `slot.released {slotId}`, `slot.added {slot}`, `slot.removed {slotId}`, `participant.joined {participant}`, `event.updated {locked}`, `invite.rotated {}` (no link; keeps seq gap-free), `presence {count}`, `resync {}`, `event.deleted {}`. Coverage is recomputed client-side with the shared `computeCoverage` function.
 
 ### Shared domain interfaces (`packages/shared`)
 

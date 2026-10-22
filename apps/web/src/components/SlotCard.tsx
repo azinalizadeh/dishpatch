@@ -19,6 +19,8 @@ interface SlotCardProps {
   canRelease: boolean;
   /** A claim or release of this slot is in flight: the card is optimistic (70% opacity). */
   pending: boolean;
+  /** Coverage hint chip for an open slot, e.g. "Vegan would help" (US-11). */
+  hint?: string | undefined;
   onClaim: (slot: SlotView) => void;
   onRelease: (slot: SlotView) => void;
 }
@@ -41,11 +43,13 @@ export function SlotCard({
   openState,
   canRelease,
   pending,
+  hint,
   onClaim,
   onRelease,
 }: SlotCardProps) {
   const { plural: label, singular, border } = CATEGORY_LABELS[slot.category];
   const pop = usePopOnClaim(slot.claimedBy?.id ?? null);
+  const hintId = useId();
 
   if (slot.claimedBy && slot.dishName) {
     const by = slot.claimedBy.displayName;
@@ -87,15 +91,25 @@ export function SlotCard({
     );
   }
 
+  const showHint = hint !== undefined && openState === 'claimable';
   return (
     <button
       type="button"
       disabled={openState !== 'claimable' || pending}
       aria-label={`Claim open ${label} slot ${number}`}
+      aria-describedby={showHint ? hintId : undefined}
       onClick={() => onClaim(slot)}
       className="flex min-h-24 cursor-pointer flex-col justify-between gap-s2 rounded-lg border-2 border-dashed border-border-ui bg-transparent px-s4 py-s3 text-left text-muted enabled:hover:border-primary enabled:hover:bg-surface enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-55"
     >
       <span className="font-extrabold text-primary">{openLabel[openState]}</span>
+      {showHint ? (
+        <span
+          id={hintId}
+          className="self-start rounded-pill bg-warn-bg px-s2 py-[2px] text-xs font-bold text-warn-ink"
+        >
+          {hint}
+        </span>
+      ) : null}
       <span className="text-sm">Open {singular}</span>
     </button>
   );

@@ -27,6 +27,7 @@ const STREAM_EVENTS: BoardEventType[] = [
   'slot.removed',
   'participant.joined',
   'event.updated',
+  'invite.rotated',
   'presence',
   'resync',
   'event.deleted',

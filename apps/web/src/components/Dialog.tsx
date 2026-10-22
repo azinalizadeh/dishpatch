@@ -6,6 +6,8 @@ interface DialogProps {
   onClose: () => void;
   /** Gets focus when the dialog opens; otherwise the first focusable element does. */
   initialFocus?: RefObject<HTMLElement | null>;
+  /** `alertdialog` for destructive confirms: Esc and the scrim don't close it (03-design.md › host). */
+  role?: 'dialog' | 'alertdialog';
   children: ReactNode;
 }
 
@@ -14,13 +16,20 @@ const FOCUSABLE =
 
 /**
  * Modal dialog (03-design.md › claim): centred card on desktop, bottom sheet on mobile, over a
- * dimmed scrim. Tab stays inside, Esc and a scrim click close it, and focus goes back to whatever
- * had it before (the slot button) when it closes.
+ * dimmed scrim. Tab stays inside, Esc and a scrim click close it (not for an alertdialog), and
+ * focus goes back to whatever had it before (the slot button) when it closes.
  */
-export function Dialog({ labelledBy, onClose, initialFocus, children }: DialogProps) {
+export function Dialog({
+  labelledBy,
+  onClose,
+  initialFocus,
+  role = 'dialog',
+  children,
+}: DialogProps) {
   const panel = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  const dismissible = role === 'dialog';
+  const onCloseRef = useRef(dismissible ? onClose : () => {});
+  onCloseRef.current = dismissible ? onClose : () => {};
 
   useEffect(() => {
     const returnTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -66,9 +75,10 @@ export function Dialog({ labelledBy, onClose, initialFocus, children }: DialogPr
         if (e.target === e.currentTarget) onCloseRef.current();
       }}
     >
+      {/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: role is dialog or alertdialog; both are modal. */}
       <div
         ref={panel}
-        role="dialog"
+        role={role}
         aria-modal="true"
         aria-labelledby={labelledBy}
         tabIndex={-1}

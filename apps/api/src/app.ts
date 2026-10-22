@@ -63,7 +63,7 @@ export function buildApp(deps: AppDeps): Express {
   api.use(originCheck(env.APP_ORIGIN));
   api.use(cookieParser());
   api.use(healthRouter(db));
-  api.use(eventsRouter({ db, clock, env, limits }));
+  api.use(eventsRouter({ db, clock, env, bus, limits }));
   api.use(streamRouter({ db, clock, hub }));
   api.use(slotsRouter({ db, clock, bus, limits }));
   api.use(invitesRouter({ db, clock, env, bus, limits }));

@@ -6,7 +6,7 @@ import {
   LIMITS,
 } from '@dishpatch/shared';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ApiRequestError, NetworkError, postJson } from '../api/client.ts';
 import { rememberCreatedBoard } from '../api/created-board.ts';
 import { rememberJoin } from '../api/joined-boards.ts';
@@ -15,6 +15,7 @@ import { Banner } from '../components/Banner.tsx';
 import { Button } from '../components/Button.tsx';
 import { Stepper } from '../components/Stepper.tsx';
 import { TextField } from '../components/TextField.tsx';
+import { Toast } from '../components/Toast.tsx';
 
 const DEFAULT_COUNTS: Record<Category, number> = {
   main: 3,
@@ -74,6 +75,17 @@ function failureMessage(failure: Failure): string {
 
 export function CreateScreen() {
   const navigate = useNavigate();
+  // "Board deleted" after a host deletes their board (03-design.md › host › Interactions).
+  const { state, pathname } = useLocation();
+  const [toast, setToast] = useState<string | null>(
+    () => (state as { toast?: string } | null)?.toast ?? null,
+  );
+  // Shown once: clear it from history so a reload or Back doesn't show it again.
+  useEffect(() => {
+    if ((state as { toast?: string } | null)?.toast) {
+      navigate(pathname, { replace: true, state: null });
+    }
+  }, [state, pathname, navigate]);
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [location, setLocation] = useState('');
@@ -299,6 +311,7 @@ export function CreateScreen() {
           </p>
         </form>
       </div>
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </section>
   );
 }

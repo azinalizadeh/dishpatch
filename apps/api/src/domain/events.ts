@@ -1,4 +1,10 @@
-import { type CreateEventInput, type Dietary, type Snapshot, TokenParam } from '@dishpatch/shared';
+import {
+  type CreateEventInput,
+  computeCoverage,
+  type Dietary,
+  type Snapshot,
+  TokenParam,
+} from '@dishpatch/shared';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { Clock } from '../clock.ts';
@@ -169,15 +175,19 @@ export async function getSnapshot(db: Db, actor: Actor): Promise<Snapshot> {
         .orderBy(asc(participants.role), asc(participants.createdAt), asc(participants.id));
 
       const { seq, startsAt, ...rest } = event;
+      const boardSlots = slotRows.map(({ claimedById, claimedByName, dishTags, ...slot }) => ({
+        ...slot,
+        claimedBy:
+          claimedById && claimedByName ? { id: claimedById, displayName: claimedByName } : null,
+        dishTags: dishTags as Dietary[],
+      }));
+      const boardPeople = people.map((p) => ({ ...p, dietaryNeeds: p.dietaryNeeds as Dietary[] }));
       return {
         event: { ...rest, startsAt: startsAt.toISOString() },
-        slots: slotRows.map(({ claimedById, claimedByName, dishTags, ...slot }) => ({
-          ...slot,
-          claimedBy:
-            claimedById && claimedByName ? { id: claimedById, displayName: claimedByName } : null,
-          dishTags: dishTags as Dietary[],
-        })),
-        participants: people.map((p) => ({ ...p, dietaryNeeds: p.dietaryNeeds as Dietary[] })),
+        slots: boardSlots,
+        participants: boardPeople,
+        // The same shared function the web app runs (05-features.md › F5 DoD).
+        coverage: computeCoverage(boardPeople, boardSlots),
         me: { participantId: actor.participantId, role: actor.role },
         seq,
       };
