@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build → distroless nonroot runtime (07-security.md › Containers). Images pinned by digest.
 
-FROM node:24.22.0-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f AS base
+FROM node:26.12.1-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /app
